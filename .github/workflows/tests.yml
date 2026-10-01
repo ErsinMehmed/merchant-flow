@@ -18,38 +18,85 @@ jobs:
       - run: docker compose --profile test run --rm portal-test
 
   go-unit:
-    name: Go API (vet, unit tests)
+    name: Go API (gofmt, vet, unit tests)
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      # Integration tests skip themselves without TEST_DATABASE_DSN.
+      # Integration tests skip themselves without TEST_DATABASE_DSN; the
+      # integration job below runs them against MySQL.
       - run: >
           docker run --rm -v "$PWD:/src" -w /src/go-api
           golang:1.26-alpine@sha256:8ac98ca534ac3f51e1f420a1dd2c15e74c75cfa0f23f3ad27eb5d7236c349a0c
           sh -c 'test -z "$(gofmt -l .)" && go vet ./... && go test ./...'
 
+  # The PHP image needs Laravel Nova, a licensed package. Jobs that build it
+  # run only when the NOVA_USERNAME and NOVA_LICENSE_KEY repository secrets
+  # exist; on forks, where secrets are not available, they are skipped.
+  nova:
+    name: Check Nova credentials
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      available: ${{ steps.check.outputs.available }}
+    steps:
+      - id: check
+        env:
+          NOVA_USERNAME: ${{ secrets.NOVA_USERNAME }}
+          NOVA_LICENSE_KEY: ${{ secrets.NOVA_LICENSE_KEY }}
+        run: |
+          if [ -n "$NOVA_USERNAME" ] && [ -n "$NOVA_LICENSE_KEY" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::NOVA_USERNAME / NOVA_LICENSE_KEY are not set, so the PHP, integration and stack jobs are skipped."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
   integration:
-    name: PHP and Go integration tests
+    name: PHP tests and Go integration tests
+    needs: nova
+    if: needs.nova.outputs.available == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    # The PHP image needs Nova, a licensed package. Without the secrets (for
-    # example on forks) this job is skipped rather than failing.
-    env:
-      NOVA_USERNAME: ${{ secrets.NOVA_USERNAME }}
-      NOVA_LICENSE_KEY: ${{ secrets.NOVA_LICENSE_KEY }}
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
-      - name: Write the Composer credential
-        if: env.NOVA_USERNAME != ''
-        run: |
-          mkdir -p .secrets
-          umask 077
-          jq -n --arg u "$NOVA_USERNAME" --arg p "$NOVA_LICENSE_KEY" \
-            '{"http-basic": {"nova.laravel.com": {"username": $u, "password": $p}}}' > .secrets/composer-auth.json
-      - if: env.NOVA_USERNAME != ''
+      - run: sh .github/scripts/composer-auth.sh
+        env:
+          NOVA_USERNAME: ${{ secrets.NOVA_USERNAME }}
+          NOVA_LICENSE_KEY: ${{ secrets.NOVA_LICENSE_KEY }}
+      - name: PHP tests (PHPUnit against MySQL)
         run: docker compose --profile test run --rm php-test
-      - if: env.NOVA_USERNAME != ''
+      - name: Go integration tests (schema from the PHP migrations)
         run: docker compose --profile test run --rm go-test
       - if: always()
         run: docker compose --profile test down --volumes
+
+  # Starts the whole system with the same command a reviewer uses, then checks
+  # it end to end through Nginx: health, both portals, sign-in, tenant scope,
+  # permissions and the charge operations.
+  stack:
+    name: Full stack (docker compose up + smoke test)
+    needs: nova
+    if: needs.nova.outputs.available == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: sh .github/scripts/composer-auth.sh
+        env:
+          NOVA_USERNAME: ${{ secrets.NOVA_USERNAME }}
+          NOVA_LICENSE_KEY: ${{ secrets.NOVA_LICENSE_KEY }}
+      - name: Start the stack
+        run: docker compose up --build --detach --wait --wait-timeout 300
+      - name: Smoke test
+        run: sh scripts/smoke-test.sh
+      - name: Restart and test again (data must survive, seeders must not duplicate)
+        run: |
+          docker compose down
+          docker compose up --detach --wait --wait-timeout 300
+          sh scripts/smoke-test.sh
+      - name: Service logs
+        if: failure()
+        run: docker compose logs --no-color
+      - if: always()
+        run: docker compose down --volumes

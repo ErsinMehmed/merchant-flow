@@ -132,6 +132,31 @@ docker compose --profile test down                   # remove the test database 
 
 `contracts/charge-operations.json` lists the charge state transitions (capture, refund, void, create) with expected amounts or error codes. Both the PHP and the Go suites run every case, which keeps the two implementations of the charge rules identical.
 
+To check a running stack end to end through Nginx (health, both portals, sign-in, tenant scope, permissions, charge operations, idempotency), run the smoke test. It needs `curl` and `jq` and creates one small charge:
+
+```sh
+sh scripts/smoke-test.sh                                # http://localhost:8080
+BASE_URL=http://localhost:8090 sh scripts/smoke-test.sh # another port
+```
+
+### Continuous integration
+
+`.github/workflows/tests.yml` runs on every push and pull request:
+
+| Job                                | What it runs                                                            | Needs Nova secrets |
+| ---------------------------------- | ----------------------------------------------------------------------- | ------------------ |
+| Merchant portal                    | `portal-test`: TypeScript, ESLint, Vitest                               | no                 |
+| Go API                             | gofmt, `go vet`, unit tests                                             | no                 |
+| PHP tests and Go integration tests | `php-test` and `go-test` against a test MySQL                           | yes                |
+| Full stack                         | `docker compose up`, the smoke test, a restart and the smoke test again | yes                |
+
+The PHP image cannot be built without Nova, so the last two jobs run only when the repository has the `NOVA_USERNAME` (Nova account email) and `NOVA_LICENSE_KEY` secrets; otherwise they are skipped with a notice. To add them:
+
+```sh
+gh secret set NOVA_USERNAME
+gh secret set NOVA_LICENSE_KEY
+```
+
 Formatting (Prettier, Pint, gofmt) runs without Nova credentials:
 
 ```sh

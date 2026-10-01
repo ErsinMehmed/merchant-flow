@@ -36,7 +36,9 @@ GitHub Actions runs the same check for pushes and pull requests.
 
 ## Tests
 
-Test commands are listed in the [README](README.md#tests). Changes to charge rules belong in `contracts/charge-operations.json` first, so the PHP and Go suites both cover them. CI runs the portal and Go unit checks on every push; the PHP and Go integration job needs the `NOVA_USERNAME` and `NOVA_LICENSE_KEY` repository secrets and is skipped without them.
+Test commands are listed in the [README](README.md#tests). Changes to charge rules belong in `contracts/charge-operations.json` first, so the PHP and Go suites both cover them. When an API behavior visible to reviewers changes, update `scripts/smoke-test.sh` as well.
+
+CI runs the portal and Go unit checks on every push. The PHP tests, Go integration tests and the full-stack smoke test need the `NOVA_USERNAME` and `NOVA_LICENSE_KEY` repository secrets and are skipped without them.
 
 ## Dependencies and credentials
 
