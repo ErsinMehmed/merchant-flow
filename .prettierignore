@@ -13,5 +13,8 @@ IMPLEMENTATION_LOG.md
 **/*.log
 php/storage/
 php/bootstrap/cache/
-php/app/Containers/Vendor/
+php/public/vendor/
+php/lang/vendor/
+php/composer.lock
+**/package-lock.json
 artifacts/

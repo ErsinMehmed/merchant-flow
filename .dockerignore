@@ -14,6 +14,13 @@ IMPLEMENTATION_LOG.md
 **/*.key
 **/vendor
 **/node_modules
+php/bootstrap/cache/*.php
+php/public/vendor
+php/storage/logs/*
+php/storage/framework/cache/*
+php/storage/framework/sessions/*
+php/storage/framework/views/*
+!**/.gitignore
 **/dist
 **/coverage
 **/.pint.cache

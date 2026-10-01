@@ -7,6 +7,38 @@ x-database-environment: &database-environment
   DB_USERNAME: ${DB_USERNAME:-merchant_flow}
   DB_PASSWORD: ${DB_PASSWORD:-local-demo-password}
 
+x-php-environment: &php-environment
+  <<: *database-environment
+  APP_NAME: MerchantFlow
+  APP_ENV: local
+  APP_DEBUG: 'false'
+  APP_URL: http://localhost:${APP_PORT:-8080}
+  DB_CONNECTION: mysql
+  LOG_CHANNEL: stderr
+  SESSION_DRIVER: database
+  CACHE_STORE: database
+  QUEUE_CONNECTION: sync
+  NOVA_PATH: /admin
+  SEED_DEMO_DATA: 'true'
+
+x-php-build: &php-build
+  context: .
+  dockerfile: docker/php/Dockerfile
+  target: runtime
+  secrets:
+    - composer_auth
+
+x-mysql-healthcheck: &mysql-healthcheck
+  test:
+    [
+      'CMD-SHELL',
+      'MYSQL_PWD="$$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$$MYSQL_USER" --database="$$MYSQL_DATABASE" --execute=''SELECT 1'' >/dev/null',
+    ]
+  interval: 5s
+  timeout: 5s
+  retries: 30
+  start_period: 30s
+
 services:
   mysql:
     image: mysql:8.4@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242
@@ -17,27 +49,37 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-local-demo-root-password}
     volumes:
       - mysql-data:/var/lib/mysql
-    healthcheck:
-      test:
-        [
-          'CMD-SHELL',
-          'MYSQL_PWD="$$MYSQL_PASSWORD" mysql --protocol=TCP --host=127.0.0.1 --user="$$MYSQL_USER" --database="$$MYSQL_DATABASE" --execute=''SELECT 1'' >/dev/null',
-        ]
-      interval: 5s
-      timeout: 5s
-      retries: 20
-      start_period: 30s
+    healthcheck: *mysql-healthcheck
     restart: unless-stopped
 
-  php:
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-    environment:
-      <<: *database-environment
+  # One-off job: migrations, seeders and Nova's public assets. The PHP runtime
+  # starts only after it exits successfully.
+  init:
+    image: merchant-flow-php:local
+    build: *php-build
+    environment: *php-environment
+    volumes:
+      - app-key:/run/merchant-flow
+      - php-public:/srv/php-public
     depends_on:
       mysql:
         condition: service_healthy
+    command:
+      [
+        '/bin/sh',
+        '-c',
+        'php artisan migrate --force && php artisan db:seed --force && rm -rf /srv/php-public/vendor && cp -a /app/public/. /srv/php-public/',
+      ]
+
+  php:
+    image: merchant-flow-php:local
+    build: *php-build
+    environment: *php-environment
+    volumes:
+      - app-key:/run/merchant-flow
+    depends_on:
+      init:
+        condition: service_completed_successfully
     healthcheck:
       test: ['CMD', 'php', '/app/public/health.php']
       interval: 10s
@@ -51,9 +93,12 @@ services:
       dockerfile: Dockerfile
     environment:
       <<: *database-environment
+      SESSION_TTL: 8h
+      # The demo is served over plain HTTP on localhost. Behind TLS set true.
+      COOKIE_SECURE: 'false'
     depends_on:
-      mysql:
-        condition: service_healthy
+      init:
+        condition: service_completed_successfully
     healthcheck:
       test:
         [
@@ -63,7 +108,7 @@ services:
           '--tries=1',
           '--timeout=4',
           '--spider',
-          'http://127.0.0.1:8081/health',
+          'http://127.0.0.1:8081/api/health',
         ]
       interval: 10s
       timeout: 5s
@@ -76,6 +121,8 @@ services:
       dockerfile: docker/nginx/Dockerfile
     ports:
       - '127.0.0.1:${APP_PORT:-8080}:80'
+    volumes:
+      - php-public:/usr/share/nginx/php-public:ro
     depends_on:
       php:
         condition: service_healthy
@@ -97,6 +144,91 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # --- Tests: docker compose --profile test run --rm <service> ---
+
+  # Throwaway MySQL on tmpfs; never touches the demo database.
+  mysql-test:
+    profiles: [test]
+    image: mysql:8.4@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242
+    environment:
+      MYSQL_DATABASE: merchant_flow_test
+      MYSQL_USER: merchant_flow
+      MYSQL_PASSWORD: test-password
+      MYSQL_ROOT_PASSWORD: test-root-password
+    volumes:
+      - ./docker/mysql/test-init.sql:/docker-entrypoint-initdb.d/10-test-databases.sql:ro
+    tmpfs:
+      - /var/lib/mysql
+    healthcheck: *mysql-healthcheck
+
+  php-test:
+    profiles: [test]
+    image: merchant-flow-php-test:local
+    build:
+      <<: *php-build
+      target: test
+    environment:
+      APP_ENV: testing
+      DB_CONNECTION: mysql
+      DB_HOST: mysql-test
+      DB_PORT: '3306'
+      DB_DATABASE: merchant_flow_test
+      DB_USERNAME: merchant_flow
+      DB_PASSWORD: test-password
+    depends_on:
+      mysql-test:
+        condition: service_healthy
+
+  # Go integration tests run against the schema produced by the PHP
+  # migrations, in a database of their own.
+  go-test-schema:
+    profiles: [test]
+    image: merchant-flow-php-test:local
+    build:
+      <<: *php-build
+      target: test
+    environment:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: mysql
+      DB_HOST: mysql-test
+      DB_PORT: '3306'
+      DB_DATABASE: merchant_flow_go_test
+      DB_USERNAME: merchant_flow
+      DB_PASSWORD: test-password
+    depends_on:
+      mysql-test:
+        condition: service_healthy
+    command: ['php', 'artisan', 'migrate:fresh', '--force', '--seed']
+
+  go-test:
+    profiles: [test]
+    image: golang:1.26-alpine@sha256:8ac98ca534ac3f51e1f420a1dd2c15e74c75cfa0f23f3ad27eb5d7236c349a0c
+    working_dir: /src/go-api
+    volumes:
+      - ./go-api:/src/go-api:ro
+      - ./contracts:/src/contracts:ro
+      - go-mod-cache:/go/pkg/mod
+      - go-build-cache:/root/.cache/go-build
+    environment:
+      CGO_ENABLED: '0'
+      GOFLAGS: -mod=readonly
+      TEST_DATABASE_DSN: merchant_flow:test-password@tcp(mysql-test:3306)/merchant_flow_go_test?parseTime=true&multiStatements=true
+    depends_on:
+      go-test-schema:
+        condition: service_completed_successfully
+    command: ['sh', '-c', 'go vet ./... && go test -count=1 ./...']
+
+  portal-test:
+    profiles: [test]
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+      target: portal-build
+    command: ['npm', 'run', 'check']
+
+  # --- Developer tools: docker compose run --rm <service> ---
+
   format:
     profiles: [tools]
     build:
@@ -115,12 +247,11 @@ services:
     build:
       context: .
       dockerfile: docker/php/Dockerfile
+      target: base
     entrypoint: [composer]
     working_dir: /app
     volumes:
       - ./php:/app
-    environment:
-      COMPOSER_HOME: /tmp/composer
     secrets:
       - source: composer_auth
         target: /tmp/composer/auth.json
@@ -131,10 +262,14 @@ services:
     working_dir: /app
     volumes:
       - ./merchant-portal:/app
-    entrypoint: [node]
+    entrypoint: [npm]
 
 volumes:
   mysql-data:
+  app-key:
+  php-public:
+  go-mod-cache:
+  go-build-cache:
 
 secrets:
   composer_auth:

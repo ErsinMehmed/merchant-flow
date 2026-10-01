@@ -1,0 +1,55 @@
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  portal:
+    name: Merchant portal (types, lint, tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: docker compose --profile test build portal-test
+      - run: docker compose --profile test run --rm portal-test
+
+  go-unit:
+    name: Go API (vet, unit tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      # Integration tests skip themselves without TEST_DATABASE_DSN.
+      - run: >
+          docker run --rm -v "$PWD:/src" -w /src/go-api
+          golang:1.26-alpine@sha256:8ac98ca534ac3f51e1f420a1dd2c15e74c75cfa0f23f3ad27eb5d7236c349a0c
+          sh -c 'test -z "$(gofmt -l .)" && go vet ./... && go test ./...'
+
+  integration:
+    name: PHP and Go integration tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # The PHP image needs Nova, a licensed package. Without the secrets (for
+    # example on forks) this job is skipped rather than failing.
+    env:
+      NOVA_USERNAME: ${{ secrets.NOVA_USERNAME }}
+      NOVA_LICENSE_KEY: ${{ secrets.NOVA_LICENSE_KEY }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - name: Write the Composer credential
+        if: env.NOVA_USERNAME != ''
+        run: |
+          mkdir -p .secrets
+          umask 077
+          jq -n --arg u "$NOVA_USERNAME" --arg p "$NOVA_LICENSE_KEY" \
+            '{"http-basic": {"nova.laravel.com": {"username": $u, "password": $p}}}' > .secrets/composer-auth.json
+      - if: env.NOVA_USERNAME != ''
+        run: docker compose --profile test run --rm php-test
+      - if: env.NOVA_USERNAME != ''
+        run: docker compose --profile test run --rm go-test
+      - if: always()
+        run: docker compose --profile test down --volumes
