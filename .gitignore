@@ -1,0 +1,31 @@
+IMPLEMENTATION_LOG.md
+
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+auth.json
+*.pem
+*.key
+
+# Dependencies and generated output
+**/vendor/
+**/node_modules/
+**/dist/
+**/coverage/
+**/.phpunit.cache/
+**/.phpunit.result.cache
+php/storage/*.key
+php/storage/logs/*
+php/storage/framework/cache/*
+php/storage/framework/sessions/*
+php/storage/framework/views/*
+php/bootstrap/cache/*.php
+go-api/bin/
+*.log
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
