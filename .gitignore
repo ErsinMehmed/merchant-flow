@@ -5,6 +5,7 @@ IMPLEMENTATION_LOG.md
 .env.*
 !.env.example
 auth.json
+.secrets/
 *.pem
 *.key
 

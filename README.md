@@ -86,7 +86,13 @@ docker compose run --rm --entrypoint npm node --version
 
 The tools mount `php/` and `merchant-portal/` respectively, so generated project files are saved in the repository. Runtime services use files copied into their images.
 
-Laravel Nova requires authorized package access. Credentials must never be committed or embedded in Docker image layers. The final setup will document how this dependency is supplied.
+### Nova package access
+
+Keep Nova credentials in `.secrets/composer-auth.json`, separate from `.env`. Create the directory and copy [composer-auth.json.example](docker/secrets/composer-auth.json.example) into it as `composer-auth.json`. Set `username` to your Nova account email and `password` to the license key.
+
+Only the Composer tool receives this file, mounted read-only at `/tmp/composer/auth.json` through a [Compose secret](https://docs.docker.com/compose/how-tos/use-secrets/). It is excluded from Git and Docker build contexts. The normal `docker compose up` does not require Nova credentials; the Composer tool does.
+
+Local Compose secrets use files on your machine, so this is not encrypted storage. For CI, supply the credentials from the CI secret store. When Nova package installation is added to the image build, use a [BuildKit secret mount](https://docs.docker.com/build/building/secrets/), without passing credentials through Dockerfile `ARG` or `ENV`. Nova installation is still pending.
 
 ## Engineering approach
 

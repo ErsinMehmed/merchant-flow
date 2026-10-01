@@ -86,6 +86,9 @@ services:
       - ./php:/app
     environment:
       COMPOSER_HOME: /tmp/composer
+    secrets:
+      - source: composer_auth
+        target: /tmp/composer/auth.json
 
   node:
     profiles: [tools]
@@ -97,3 +100,7 @@ services:
 
 volumes:
   mysql-data:
+
+secrets:
+  composer_auth:
+    file: ./.secrets/composer-auth.json

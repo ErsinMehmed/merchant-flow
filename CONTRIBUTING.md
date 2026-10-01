@@ -23,4 +23,4 @@ Formatting and test commands will be documented when the application toolchains 
 
 ## Dependencies and credentials
 
-Commit dependency lock files once generated. Never commit `.env` files, Composer `auth.json`, access tokens, or Nova credentials. Document required environment variable names using `.env.example` when configuration is implemented.
+Commit dependency lock files once generated. Keep local settings in `.env` and Nova package credentials in `.secrets/composer-auth.json`; both are ignored. Commit only the example files with empty credential fields. Never add access tokens or license keys to source files.
