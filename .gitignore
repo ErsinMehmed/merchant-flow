@@ -22,6 +22,7 @@ php/storage/framework/sessions/*
 php/storage/framework/views/*
 php/bootstrap/cache/*.php
 go-api/bin/
+artifacts/
 *.log
 
 # Editors and operating systems

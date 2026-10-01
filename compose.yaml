@@ -1,0 +1,99 @@
+name: merchant-flow
+
+x-database-environment: &database-environment
+  DB_HOST: mysql
+  DB_PORT: "3306"
+  DB_DATABASE: ${DB_DATABASE:-merchant_flow}
+  DB_USERNAME: ${DB_USERNAME:-merchant_flow}
+  DB_PASSWORD: ${DB_PASSWORD:-local-demo-password}
+
+services:
+  mysql:
+    image: mysql:8.4@sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-merchant_flow}
+      MYSQL_USER: ${DB_USERNAME:-merchant_flow}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-local-demo-password}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-local-demo-root-password}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=\"$$MYSQL_PASSWORD\" mysql --protocol=TCP --host=127.0.0.1 --user=\"$$MYSQL_USER\" --database=\"$$MYSQL_DATABASE\" --execute='SELECT 1' >/dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    restart: unless-stopped
+
+  php:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    environment:
+      <<: *database-environment
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "php", "/app/public/health.php"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  go-api:
+    build:
+      context: ./go-api
+      dockerfile: Dockerfile
+    environment:
+      <<: *database-environment
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--timeout=4", "--spider", "http://127.0.0.1:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    ports:
+      - "127.0.0.1:${APP_PORT:-8080}:80"
+    depends_on:
+      php:
+        condition: service_healthy
+      go-api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--timeout=4", "--spider", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  composer:
+    profiles: [tools]
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    entrypoint: [composer]
+    working_dir: /app
+    volumes:
+      - ./php:/app
+    environment:
+      COMPOSER_HOME: /tmp/composer
+
+  node:
+    profiles: [tools]
+    image: node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1
+    working_dir: /app
+    volumes:
+      - ./merchant-portal:/app
+    entrypoint: [node]
+
+volumes:
+  mysql-data:
