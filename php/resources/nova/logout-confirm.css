@@ -1,0 +1,128 @@
+/*
+ * Logout confirmation dialog, centred on screen. Mirrors Nova's own
+ * confirmation modals (small panel, divided header, grey footer) using Nova's
+ * colour tokens, so it follows the light and dark themes.
+ */
+.mf-confirm {
+    width: calc(100% - 1.5rem);
+    max-width: 24rem;
+    margin: auto;
+    padding: 0;
+    overflow: hidden;
+    border: 0;
+    border-radius: 0.5rem;
+    background: #fff;
+    color: rgb(var(--colors-gray-500));
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 500;
+    box-shadow:
+        0 10px 15px -3px rgb(0 0 0 / 0.1),
+        0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Older browsers do not let ::backdrop inherit custom properties. */
+.mf-confirm::backdrop {
+    background: rgba(var(--colors-gray-500, 100, 116, 139), 0.75);
+}
+
+.mf-confirm__title {
+    margin: 0;
+    padding: 1rem 2rem;
+    border-bottom: 1px solid rgb(var(--colors-gray-100));
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.025em;
+    text-transform: uppercase;
+}
+
+.mf-confirm__message {
+    margin: 0;
+    padding: 0.75rem 2rem;
+    line-height: 1.5;
+}
+
+.mf-confirm__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+    padding: 0.75rem 1.5rem;
+    background: rgb(var(--colors-gray-100));
+}
+
+.mf-confirm__cancel,
+.mf-confirm__submit {
+    height: 2.25rem;
+    padding: 0 0.75rem;
+    border: 1px solid transparent;
+    border-radius: 0.25rem;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.mf-confirm__cancel:focus-visible,
+.mf-confirm__submit:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgb(var(--colors-primary-200));
+}
+
+.mf-confirm__cancel:disabled,
+.mf-confirm__submit:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.mf-confirm__cancel {
+    background: transparent;
+    color: rgb(var(--colors-gray-500));
+}
+
+.mf-confirm__cancel:hover:not(:disabled) {
+    color: rgb(var(--colors-gray-400));
+}
+
+.mf-confirm__submit {
+    border-color: rgb(var(--colors-primary-500));
+    background: rgb(var(--colors-primary-500));
+    color: #fff;
+}
+
+.mf-confirm__submit:hover:not(:disabled) {
+    border-color: rgb(var(--colors-primary-400));
+    background: rgb(var(--colors-primary-400));
+}
+
+.dark .mf-confirm {
+    background: rgb(var(--colors-gray-800));
+    color: rgb(var(--colors-gray-400));
+}
+
+.dark .mf-confirm::backdrop {
+    background: rgba(var(--colors-gray-900, 15, 23, 42), 0.75);
+}
+
+.dark .mf-confirm__title {
+    border-bottom-color: rgb(var(--colors-gray-700));
+}
+
+.dark .mf-confirm__footer {
+    background: rgb(var(--colors-gray-700));
+}
+
+.dark .mf-confirm__cancel {
+    color: rgb(var(--colors-gray-400));
+}
+
+.dark .mf-confirm__cancel:hover:not(:disabled) {
+    color: rgb(var(--colors-gray-300));
+}
+
+.dark .mf-confirm__submit {
+    color: rgb(var(--colors-gray-900));
+}
+
+.dark .mf-confirm__cancel:focus-visible,
+.dark .mf-confirm__submit:focus-visible {
+    box-shadow: 0 0 0 3px rgb(var(--colors-gray-600));
+}

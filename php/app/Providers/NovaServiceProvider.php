@@ -3,13 +3,24 @@
 namespace App\Providers;
 
 use App\Containers\AppSection\Authentication\Actions\AuthenticateAdminAction;
-use App\Containers\AppSection\User\Models\User;
+use App\Containers\AppSection\Charge\Enums\ChargeStatus;
+use App\Containers\AppSection\User\Models\User as UserModel;
+use App\Nova\Account;
+use App\Nova\Agent;
+use App\Nova\Charge;
 use App\Nova\Dashboards\Main;
+use App\Nova\Filters\ChargeDisputedFilter;
+use App\Nova\Filters\ChargeStatusFilter;
+use App\Nova\Permission;
+use App\Nova\Role;
+use App\Nova\User;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
+use Laravel\Nova\Menu\MenuItem;
+use Laravel\Nova\Menu\MenuSection;
 use Laravel\Nova\Nova;
 use Laravel\Nova\NovaApplicationServiceProvider;
 
@@ -26,6 +37,50 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
 
         Nova::withBreadcrumbs();
         Nova::footer(static fn (): string => 'MerchantFlow admin · demo data only');
+        Nova::mainMenu(static fn (): array => self::menu());
+
+        // Replaces the browser's native logout confirm() with a Nova-styled dialog.
+        Nova::serving(static function (): void {
+            Nova::script('logout-confirm', resource_path('nova/logout-confirm.js'));
+            Nova::style('logout-confirm', resource_path('nova/logout-confirm.css'));
+        });
+    }
+
+    /**
+     * Nova keeps filters in a dropdown; the common charge views are one click
+     * away in the menu instead. Every item is hidden from users who cannot
+     * view the resource.
+     *
+     * @return list<MenuSection>
+     */
+    private static function menu(): array
+    {
+        $byStatus = static fn (string $label, ChargeStatus $status): MenuItem => MenuItem::filter($label, Charge::class, new ChargeStatusFilter, $status->value);
+
+        return [
+            MenuSection::dashboard(Main::class)->icon('chart-bar'),
+
+            MenuSection::make('Payments', [
+                MenuItem::resource(Charge::class),
+                $byStatus('Authorized', ChargeStatus::Authorized),
+                $byStatus('Captured', ChargeStatus::Captured),
+                $byStatus('Refunded', ChargeStatus::Refunded),
+                $byStatus('Voided', ChargeStatus::Voided),
+                $byStatus('Failed', ChargeStatus::Failed),
+                MenuItem::filter('Disputed', Charge::class, new ChargeDisputedFilter, ChargeDisputedFilter::DISPUTED),
+            ])->icon('credit-card')->collapsable(),
+
+            MenuSection::make('Network', [
+                MenuItem::resource(Account::class),
+                MenuItem::resource(Agent::class),
+            ])->icon('briefcase')->collapsable(),
+
+            MenuSection::make('Access', [
+                MenuItem::resource(User::class),
+                MenuItem::resource(Role::class),
+                MenuItem::resource(Permission::class),
+            ])->icon('users')->collapsable(),
+        ];
     }
 
     protected function fortify(): void
@@ -36,7 +91,7 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
             ])
             // Agents and merchants are turned away at the login form, before a
             // session exists, not by a 403 after signing in.
-            ->authenticateUsing(static fn (Request $request): ?User => app(AuthenticateAdminAction::class)->run(
+            ->authenticateUsing(static fn (Request $request): ?UserModel => app(AuthenticateAdminAction::class)->run(
                 (string) $request->input('email'),
                 (string) $request->input('password'),
             ))
@@ -68,7 +123,7 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
      */
     protected function gate(): void
     {
-        Gate::define('viewNova', static fn (?User $user): bool => $user?->isAdmin() ?? false);
+        Gate::define('viewNova', static fn (?UserModel $user): bool => $user?->isAdmin() ?? false);
     }
 
     protected function dashboards(): array

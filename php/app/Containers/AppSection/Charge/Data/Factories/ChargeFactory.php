@@ -51,7 +51,7 @@ final class ChargeFactory extends ParentFactory
 
     public function refunded(): self
     {
-        return $this->state(static fn (array $attributes): array => [
+        return $this->state(fn (array $attributes): array => [
             'status' => ChargeStatus::Refunded,
             'amount_refunded' => $attributes['amount'],
             'refunded' => true,
@@ -60,7 +60,7 @@ final class ChargeFactory extends ParentFactory
 
     public function voided(): self
     {
-        return $this->state(static fn (array $attributes): array => [
+        return $this->state(fn (array $attributes): array => [
             'status' => ChargeStatus::Voided,
             'amount_captured' => 0,
             'amount_voided' => $attributes['amount'],

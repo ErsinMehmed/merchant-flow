@@ -11,6 +11,8 @@ use App\Containers\AppSection\Charge\Values\MoneyAmount;
 use App\Nova\Actions\CaptureCharge;
 use App\Nova\Actions\RefundCharge;
 use App\Nova\Actions\VoidCharge;
+use App\Nova\Filters\ChargeCurrencyFilter;
+use App\Nova\Filters\ChargeDisputedFilter;
 use App\Nova\Filters\ChargeStatusFilter;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
@@ -51,6 +53,7 @@ final class Charge extends Resource
             ID::make()->sortable(),
             BelongsTo::make('Merchant', 'account', Account::class)
                 ->sortable()
+                ->filterable()
                 ->rules('required'),
             Text::make('Transaction ID', 'external_transaction_id')->exceptOnForms()->copyable(),
             $this->money('Amount', 'amount')->sortable(),
@@ -66,7 +69,7 @@ final class Charge extends Resource
             Text::make('Customer Email')
                 ->sortable()
                 ->rules('required', 'email:rfc', 'max:254'),
-            DateTime::make('Created At')->sortable()->exceptOnForms(),
+            DateTime::make('Created At')->sortable()->filterable()->exceptOnForms(),
 
             new Panel('Amounts', [
                 $this->money('Captured', 'amount_captured')->onlyOnDetail(),
@@ -141,7 +144,8 @@ final class Charge extends Resource
 
     public function filters(NovaRequest $request): array
     {
-        return [new ChargeStatusFilter];
+        // Merchant and date range come from the filterable fields above.
+        return [new ChargeStatusFilter, new ChargeCurrencyFilter, new ChargeDisputedFilter];
     }
 
     public function actions(NovaRequest $request): array
