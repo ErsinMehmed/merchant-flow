@@ -1,116 +1,222 @@
 # MerchantFlow
 
-A payments platform built around a PHP administration portal, a React merchant portal, and a Go API sharing a MySQL database.
+A small payments platform built as a take-home assignment: a Laravel/Apiato/Nova admin portal, a React merchant portal backed by a Go API, and one shared MySQL database. The PHP application owns the schema and the Spatie roles and permissions; the Go API reads the same tables on every request, so a permission change made in Nova applies to the merchant portal immediately.
 
-## Project status
+All data is fictional. Payments only record rows in `charges`; nothing is sent to a real processor and no card data exists anywhere.
 
-The Docker development environment is available: MySQL, PHP-FPM, a Go health endpoint, and Nginx. The homepage is a temporary setup page. Laravel/Apiato/Nova, the React portal, payment operations, migrations, and application tests are not implemented yet.
+## Requirements
 
-This project originates from a Payarc take-home assignment and is being developed as a portfolio project. Payments will use fictional demo data and record simulated transactions; no real card processing is planned.
+- Docker Desktop (or Docker Engine) with Compose v2. Nothing else is needed on the host: PHP, Go and Node.js builds all run inside Docker.
+- Credentials for an authorized [Laravel Nova](https://nova.laravel.com) license. Nova is a private Composer package, so the PHP image cannot be built without them.
+- Free port `8080` on `127.0.0.1` (configurable, see [Configuration](#configuration)).
 
-## Planned architecture
+## Setup
 
-| Component       | Stack                   | Responsibility                                                                          |
-| --------------- | ----------------------- | --------------------------------------------------------------------------------------- |
-| Administration  | Laravel / Apiato / Nova | Own the schema, manage users, merchants, agents, and permissions                        |
-| Merchant portal | React / AG Grid         | Display transactions and initiate permitted payment actions through Go                  |
-| API             | Go                      | Authenticate requests, enforce permissions and tenant scope, execute payment operations |
-| Database        | MySQL / Spatie tables   | Shared application data and a single source of permission assignments                   |
+1. Put the Nova credentials in an ignored local file. The file is passed to the image build as a BuildKit secret and never ends up in an image layer or in Git.
 
-PHP owns all migrations. Go accesses the shared schema without creating or migrating tables. Authorization must read current Spatie assignments and restrict every resource operation to the caller's accessible accounts. Requests for another tenant's resources return `404`.
+   macOS / Linux:
 
-Payment amounts use integer minor units. Refund and void operations must preserve valid amounts and statuses under concurrent requests.
+   ```sh
+   mkdir -p .secrets
+   cp docker/secrets/composer-auth.json.example .secrets/composer-auth.json
+   ```
 
-## Development milestones
+   Windows PowerShell:
 
-- [ ] Confirm compatible dependency versions and Laravel Nova access.
-- [x] Set up the Docker runtime and database connectivity checks.
-- [ ] Add automatic PHP migrations and demo seeding.
-- [ ] Implement PHP migrations, relationships, permissions, and repeatable demo seeders.
-- [ ] Implement Go authentication, tenant scoping, and payment operations with tests.
-- [ ] Implement Nova administration and the React merchant portal.
-- [ ] Verify clean startup, restart behavior, and complete user flows.
-- [ ] Document demo accounts, test commands, design decisions, AI use, and limitations.
+   ```powershell
+   New-Item -ItemType Directory -Path .secrets -Force
+   Copy-Item docker/secrets/composer-auth.json.example .secrets/composer-auth.json
+   ```
 
-## Local setup
+   Then edit `.secrets/composer-auth.json`: `username` is the Nova account email, `password` is the license key.
 
-Install Docker Desktop and use Linux containers. From the repository root:
+2. Start everything:
+
+   ```sh
+   docker compose up --build --detach --wait
+   ```
+
+   `docker compose up` on its own works too; `--detach --wait` returns once every service is healthy. The first build takes a few minutes (Composer, Go modules and npm packages are downloaded).
+
+That is the whole setup. There is no manual migration, seeding or asset step.
+
+## What happens on startup
+
+| Step | Service  | What it does                                                                                                                                 |
+| ---- | -------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1    | `mysql`  | MySQL 8.4 with a named volume (`merchant-flow_mysql-data`).                                                                                  |
+| 2    | `init`   | One-off job: `php artisan migrate --force`, then `php artisan db:seed --force`, then copies Nova's public assets for Nginx. Exits when done. |
+| 3    | `php`    | PHP-FPM serving Nova. Starts only after `init` succeeded.                                                                                    |
+| 4    | `go-api` | The merchant API. Starts only after `init` succeeded. It never creates or alters tables.                                                     |
+| 5    | `web`    | Nginx: the built React portal, `/admin` to PHP, `/api` to Go. The only service with a published port.                                        |
+
+Seeding is safe to repeat. Roles and permissions are created if missing, but existing role permissions are never reset, so changes made in Nova survive restarts. Demo users, merchants, agents and about 940 charges are created only on an empty database.
+
+## URLs
+
+| What                    | URL                                                                        |
+| ----------------------- | -------------------------------------------------------------------------- |
+| Merchant portal (React) | http://localhost:8080/                                                     |
+| Admin portal (Nova)     | http://localhost:8080/admin                                                |
+| Go API                  | http://localhost:8080/api/v1/… (health: `/api/health`)                     |
+| Health checks           | `/health` (Nginx), `/health/php` (PHP + MySQL), `/api/health` (Go + MySQL) |
+
+## Demo accounts
+
+All demo users share the password **`MerchantFlowDemo!2026`**. It exists only for the fictional local data.
+
+| Email                             | Role     | Admin portal     | Merchant portal                                                               |
+| --------------------------------- | -------- | ---------------- | ----------------------------------------------------------------------------- |
+| `admin@merchant-flow.test`        | admin    | Yes, full access | Every merchant, every action                                                  |
+| `merchant@merchant-flow.test`     | merchant | No               | Northwind Coffee Roasters and Fabrikam Fitness; create, capture, refund, void |
+| `merchant-two@merchant-flow.test` | merchant | No               | Contoso Books and Tailspin Toys (suspended: no new charges)                   |
+| `agent@merchant-flow.test`        | agent    | No               | Read-only: the merchants Harbor Payments serves (Northwind, Contoso)          |
+| `subagent@merchant-flow.test`     | agent    | No               | Read-only: Fabrikam Fitness (Summit Referral, a sub-agent of Harbor)          |
+
+**Admin portal login:** open http://localhost:8080/admin and sign in with `admin@merchant-flow.test` / `MerchantFlowDemo!2026`. Agents and merchants get the same "credentials do not match" answer as a wrong password; Nova never starts a session for them.
+
+The merchant portal's sign-in page has a "Demo accounts" list that fills the form for you.
+
+## Things worth trying
+
+- Sign in to the portal as `merchant@merchant-flow.test`, create a charge, refund part of it, then try to refund more than is left.
+- Create a charge with "Capture now" unchecked, then capture or void it.
+- In Nova, open **Roles → merchant** and detach `charges.refund`. In the portal, the Refund button disappears after the next reload, and the API answers `403` straight away.
+- Unlink a user from a merchant in Nova (**Users → Merchant accounts**). That merchant's charges become `404` for the user on the next request.
+- In Nova, **Users → Portal sessions** lists merchant portal sessions; deleting one signs that browser out.
+- Ask the API for another merchant's charge: `404`, exactly like a charge that does not exist.
+
+## Migrations and seeders
+
+The PHP application owns the schema. Migrations live with the Apiato container they belong to:
+
+| Path                                                           | Tables                                                                                             |
+| -------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `php/app/Containers/AppSection/User/Data/Migrations`           | `users`, `sessions`, `password_reset_tokens`                                                       |
+| `php/app/Containers/AppSection/Authorization/Data/Migrations`  | Spatie: `roles`, `permissions`, `model_has_roles`, `model_has_permissions`, `role_has_permissions` |
+| `php/app/Containers/AppSection/Agent/Data/Migrations`          | `agents`, `agent_user`                                                                             |
+| `php/app/Containers/AppSection/Account/Data/Migrations`        | `accounts`, `account_user`, `agent_account`                                                        |
+| `php/app/Containers/AppSection/Charge/Data/Migrations`         | `charges` (with CHECK constraints on amounts and status)                                           |
+| `php/app/Containers/AppSection/Authentication/Data/Migrations` | `api_tokens` (merchant portal sessions issued by Go)                                               |
+| `php/app/Ship/Migrations`                                      | `cache`, `idempotency_keys`                                                                        |
+
+Seeders: `Authorization/Data/Seeders` (roles and permissions, every start) and `Demo/Data/Seeders` (demo data, empty database only).
+
+Useful commands while the stack is running:
 
 ```sh
-docker compose up
+docker compose exec php php artisan migrate:status
+docker compose exec php php artisan migrate --force   # apply new migrations
+docker compose exec php php artisan db:seed --force   # re-run the (idempotent) seeders
 ```
 
-Open [localhost:8080](http://localhost:8080). The first run downloads images and builds PHP extensions and the Go binary. No local PHP, Go, Node.js, or Composer installation is needed.
-
-To start in the background and wait for readiness:
+To start again from a clean database, drop the volumes and start as usual. **This deletes all local data**, including anything changed in Nova:
 
 ```sh
+docker compose down --volumes
 docker compose up --build --detach --wait
 ```
 
-Only Nginx is published, on `127.0.0.1:8080`. MySQL, PHP-FPM, and Go are reachable inside the Compose network. MySQL creates the empty demo database on first start and stores it in `merchant-flow_mysql-data`; there are no application tables or seeded accounts yet. PHP migrations and seeders will be added with the monolith.
+## Tests
 
-| URL           | Current behavior                          |
-| ------------- | ----------------------------------------- |
-| `/`           | Temporary setup page                      |
-| `/health`     | Nginx health, `200`                       |
-| `/health/php` | PHP database connectivity, `200` or `503` |
-| `/api/health` | Go database connectivity, `200` or `503`  |
-| `/admin`      | `503` until Nova is installed             |
-
-Services wait for their dependencies' health checks before startup, using [Compose startup conditions](https://docs.docker.com/compose/how-tos/startup-order/).
-
-### Configuration
-
-Compose uses local demo defaults, so copying `.env.example` is optional. For overrides, copy it to `.env` and set `APP_PORT` or the database settings. The defaults are not production credentials. Changing database credentials in `.env` does not change users already stored in an existing MySQL volume.
-
-Base images are pinned by digest. PHP uses 8.4, Go uses 1.26, MySQL uses 8.4, and the Node tool uses 24. Package-level compatibility and Nova installation will be verified when the monolith is added.
-
-### Useful commands
+Each suite runs in its own container. The PHP and Go suites use a separate throwaway MySQL (`mysql-test`, on tmpfs), never the demo database.
 
 ```sh
-docker compose ps
-docker compose logs --tail=100
-docker compose down
+docker compose --profile test run --rm php-test      # PHPUnit: domain rules, policies, Nova, seeders
+docker compose --profile test run --rm go-test       # go vet + unit and MySQL integration tests
+docker compose --profile test run --rm portal-test   # TypeScript, ESLint, Vitest
+docker compose --profile test down                   # remove the test database afterwards
 ```
 
-`docker compose down` preserves the database volume. After source changes, use `docker compose up --build --detach --wait` to rebuild the runtime images.
+`go-test` first runs the PHP migrations and seeders against its own test database, so the Go tests always run against the real schema and the real role definitions.
 
-Composer and Node are optional tool services; they run only when requested:
+`contracts/charge-operations.json` lists the charge state transitions (capture, refund, void, create) with expected amounts or error codes. Both the PHP and the Go suites run every case, which keeps the two implementations of the charge rules identical.
 
-```sh
-docker compose run --rm composer --version
-docker compose run --rm node --version
-docker compose run --rm --entrypoint npm node --version
-```
-
-The tools mount `php/` and `merchant-portal/` respectively, so generated project files are saved in the repository. Runtime services use files copied into their images.
-
-### Nova package access
-
-Keep Nova credentials in `.secrets/composer-auth.json`, separate from `.env`. Create the directory and copy [composer-auth.json.example](docker/secrets/composer-auth.json.example) into it as `composer-auth.json`. Set `username` to your Nova account email and `password` to the license key.
-
-Only the Composer tool receives this file, mounted read-only at `/tmp/composer/auth.json` through a [Compose secret](https://docs.docker.com/compose/how-tos/use-secrets/). It is excluded from Git and Docker build contexts. The normal `docker compose up` does not require Nova credentials; the Composer tool does.
-
-Local Compose secrets use files on your machine, so this is not encrypted storage. For CI, supply the credentials from the CI secret store. When Nova package installation is added to the image build, use a [BuildKit secret mount](https://docs.docker.com/build/building/secrets/), without passing credentials through Dockerfile `ARG` or `ENV`. Nova installation is still pending.
-
-See [reviewer setup and Nova access](docs/reviewer-setup.md) for submission instructions.
-
-## Formatting
+Formatting (Prettier, Pint, gofmt) runs without Nova credentials:
 
 ```sh
-docker compose run --rm format
 docker compose run --rm format --check
 ```
 
-These commands run Pint, gofmt, and Prettier through Docker; no local toolchain or Nova access is needed. The formatter hides `.secrets/`, `.git/`, and the local `.env` behind container mounts. GitHub Actions runs the check on pushes and pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md) for covered file types.
+## Roles and permissions
 
-## Engineering approach
+| Permission                                          | admin | merchant | agent            |
+| --------------------------------------------------- | ----- | -------- | ---------------- |
+| Admin portal (Nova)                                 | yes   | no       | no               |
+| `charges.view`                                      | all   | own      | of own merchants |
+| `charges.create`                                    | yes   | own      | no               |
+| `charges.capture`                                   | yes   | own      | no               |
+| `charges.refund`                                    | yes   | own      | no               |
+| `charges.void`                                      | yes   | own      | no               |
+| `merchants.manage`, `agents.manage`, `users.manage` | yes   | no       | no               |
 
-Keep HTTP handlers small and separate permission checks from payment operations. Use framework conventions and add abstractions only when they solve a specific problem. Tests will focus on tenant isolation, permission changes, and concurrent refunds and voids.
+These are the seeded defaults; administrators can change role permissions or grant direct permissions to a user in Nova. The user type flags (`is_admin`, `is_agent`, `is_merchant`) are edited in Nova and keep the matching Spatie roles in sync; authorization in both PHP and Go reads only the Spatie tables.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development and review expectations and [SECURITY.md](SECURITY.md) for handling vulnerabilities and secrets.
+Scope: an admin sees every account; anyone else sees the accounts linked through `account_user` plus those served by their agents (`agent_user` → `agent_account`). A parent agent does not inherit its sub-agents' merchants.
 
-## Attribution and AI assistance
+## Merchant API
 
-Based on a Payarc take-home assignment. MerchantFlow is an independent portfolio project. AI assisted with environment checks, documentation, and the Docker setup. The final project note will describe its use during implementation.
+All endpoints are under `/api/v1` and exchange JSON. Amounts are integer minor units (cents).
+
+| Method | Path                                                                                                   | Permission                                                                    |
+| ------ | ------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
+| `POST` | `/auth/login`                                                                                          | — (`{email, password}`)                                                       |
+| `POST` | `/auth/logout`                                                                                         | —                                                                             |
+| `GET`  | `/me`                                                                                                  | signed in                                                                     |
+| `GET`  | `/accounts`                                                                                            | `charges.view` or `charges.create`                                            |
+| `GET`  | `/charges?page=&page_size=&sort=&status=&account_id=&currency=&q=&created_from=&created_to=&disputed=` | `charges.view`                                                                |
+| `GET`  | `/charges/{id}`                                                                                        | `charges.view`                                                                |
+| `POST` | `/charges`                                                                                             | `charges.create` (`{account_id, amount, currency, customer_email, capture?}`) |
+| `POST` | `/charges/{id}/capture`                                                                                | `charges.capture`                                                             |
+| `POST` | `/charges/{id}/refund`                                                                                 | `charges.refund` (`{amount?}`; omitted refunds the rest)                      |
+| `POST` | `/charges/{id}/void`                                                                                   | `charges.void` (`{reason?}`)                                                  |
+
+- **Authentication.** Go checks the email and password against `users` (Laravel bcrypt hashes) and issues a random token. Only its SHA-256 hash is stored, in `api_tokens`. The browser receives it as an `HttpOnly`, `SameSite=Strict` cookie; API clients can send `Authorization: Bearer <token>` with the token from the login response. Sessions expire after 8 hours. Login is rate limited.
+- **Errors** always look like `{"error": {"code": "...", "message": "...", "fields": {...}}}`: `401` not signed in, `403` missing permission, `404` not found or outside your scope, `409` the charge's state does not allow the operation, `422` invalid input.
+- **Idempotency.** Every `POST` that changes a charge accepts an `Idempotency-Key` header. A retry with the same key returns the stored response (`Idempotent-Replayed: true`) instead of running again; the key is recorded in the same transaction as the change. The portal sends one key per dialog.
+
+Example with curl:
+
+```sh
+TOKEN=$(curl -s -X POST localhost:8080/api/v1/auth/login -H 'Content-Type: application/json' \
+  -d '{"email":"merchant@merchant-flow.test","password":"MerchantFlowDemo!2026"}' | jq -r .data.token)
+
+curl -s "localhost:8080/api/v1/charges?status=captured&page_size=5" -H "Authorization: Bearer $TOKEN" | jq
+```
+
+## Configuration
+
+Compose works without any `.env`. To change defaults, copy `.env.example` to `.env`:
+
+| Variable                                                        | Default           | Purpose                       |
+| --------------------------------------------------------------- | ----------------- | ----------------------------- |
+| `APP_PORT`                                                      | `8080`            | Port published on `127.0.0.1` |
+| `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD`, `DB_ROOT_PASSWORD` | local demo values | MySQL credentials             |
+
+The Laravel application key is generated on first start and kept in the `merchant-flow_app-key` volume.
+
+## Stopping
+
+```sh
+docker compose down             # stop; keeps the database
+docker compose down --volumes   # stop and delete all local data
+```
+
+## Troubleshooting
+
+- **`Missing Nova credentials`** or a `secret ... not found` error: `.secrets/composer-auth.json` is missing or empty; see [Setup](#setup).
+- **Port 8080 is already in use:** set `APP_PORT=8081` in `.env`.
+- **Errors after pulling a newer version over an old database:** an earlier development schema may still be in the volume. Reset it with `docker compose down --volumes`.
+- **Logs:** `docker compose logs init` (migrations and seeding), `docker compose logs go-api`, `docker compose logs php`.
+
+## Repository layout
+
+```
+php/              Laravel 12 + Apiato 13 + Nova 5: schema, admin portal, seeders, PHP tests
+go-api/           Go API: cmd/api (entry point), internal/{auth,access,charge,idempotency,httpapi}
+merchant-portal/  React 19 + AG Grid Community (Vite)
+contracts/        Charge rule cases shared by the PHP and Go tests
+docker/           Dockerfiles, Nginx config, test database init
+```
+
+See [docs/notes.md](docs/notes.md) for the main decisions, trade-offs and what I would do with more time. Code conventions are in [CONTRIBUTING.md](CONTRIBUTING.md); secret handling in [SECURITY.md](SECURITY.md).

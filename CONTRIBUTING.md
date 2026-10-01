@@ -32,7 +32,11 @@ The first command fixes formatting; the second checks it without changing source
 
 PHP uses Laravel Pint with the Laravel preset. Go uses `gofmt`. Prettier formats JavaScript/TypeScript, CSS, HTML, JSON, YAML, and Markdown. Versions are locked in `tools/format/` and the Dockerfile. Dockerfiles, shell scripts, and Nginx/INI files follow `.editorconfig` and are reviewed manually.
 
-GitHub Actions runs the same check for pushes and pull requests. Formatting is separate from application tests; test commands will be added with the monolith and payment API.
+GitHub Actions runs the same check for pushes and pull requests.
+
+## Tests
+
+Test commands are listed in the [README](README.md#tests). Changes to charge rules belong in `contracts/charge-operations.json` first, so the PHP and Go suites both cover them. CI runs the portal and Go unit checks on every push; the PHP and Go integration job needs the `NOVA_USERNAME` and `NOVA_LICENSE_KEY` repository secrets and is skipped without them.
 
 ## Dependencies and credentials
 
