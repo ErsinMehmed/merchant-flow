@@ -16,6 +16,8 @@ auth.json
 **/coverage/
 **/.phpunit.cache/
 **/.phpunit.result.cache
+**/.pint.cache
+**/.php-cs-fixer.cache
 php/storage/*.key
 php/storage/logs/*
 php/storage/framework/cache/*

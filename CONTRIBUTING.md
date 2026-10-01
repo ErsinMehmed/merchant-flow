@@ -19,8 +19,23 @@ Keep each pull request focused on one change. Explain what changed and how you c
 
 Use descriptive commits such as `feat: enforce merchant charge scope` or `docs: document startup`. In the pull request, list checks you ran and any you could not run.
 
-Formatting and test commands will be documented when the application toolchains are added.
+## Formatting
+
+From the repository root:
+
+```sh
+docker compose run --rm format
+docker compose run --rm format --check
+```
+
+The first command fixes formatting; the second checks it without changing source files. The tool image builds automatically on first use. Run `docker compose build format` after changing its dependencies or script.
+
+PHP uses Laravel Pint with the Laravel preset. Go uses `gofmt`. Prettier formats JavaScript/TypeScript, CSS, HTML, JSON, YAML, and Markdown. Versions are locked in `tools/format/` and the Dockerfile. Dockerfiles, shell scripts, and Nginx/INI files follow `.editorconfig` and are reviewed manually.
+
+GitHub Actions runs the same check for pushes and pull requests. Formatting is separate from application tests; test commands will be added with the monolith and payment API.
 
 ## Dependencies and credentials
 
 Commit dependency lock files once generated. Keep local settings in `.env` and Nova package credentials in `.secrets/composer-auth.json`; both are ignored. Commit only the example files with empty credential fields. Never add access tokens or license keys to source files.
+
+See [reviewer setup](docs/reviewer-setup.md) for Nova access and configuring a fresh checkout.

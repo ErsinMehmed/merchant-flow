@@ -10,12 +10,12 @@ This project originates from a Payarc take-home assignment and is being develope
 
 ## Planned architecture
 
-| Component | Stack | Responsibility |
-| --- | --- | --- |
-| Administration | Laravel / Apiato / Nova | Own the schema, manage users, merchants, agents, and permissions |
-| Merchant portal | React / AG Grid | Display transactions and initiate permitted payment actions through Go |
-| API | Go | Authenticate requests, enforce permissions and tenant scope, execute payment operations |
-| Database | MySQL / Spatie tables | Shared application data and a single source of permission assignments |
+| Component       | Stack                   | Responsibility                                                                          |
+| --------------- | ----------------------- | --------------------------------------------------------------------------------------- |
+| Administration  | Laravel / Apiato / Nova | Own the schema, manage users, merchants, agents, and permissions                        |
+| Merchant portal | React / AG Grid         | Display transactions and initiate permitted payment actions through Go                  |
+| API             | Go                      | Authenticate requests, enforce permissions and tenant scope, execute payment operations |
+| Database        | MySQL / Spatie tables   | Shared application data and a single source of permission assignments                   |
 
 PHP owns all migrations. Go accesses the shared schema without creating or migrating tables. Authorization must read current Spatie assignments and restrict every resource operation to the caller's accessible accounts. Requests for another tenant's resources return `404`.
 
@@ -50,13 +50,13 @@ docker compose up --build --detach --wait
 
 Only Nginx is published, on `127.0.0.1:8080`. MySQL, PHP-FPM, and Go are reachable inside the Compose network. MySQL creates the empty demo database on first start and stores it in `merchant-flow_mysql-data`; there are no application tables or seeded accounts yet. PHP migrations and seeders will be added with the monolith.
 
-| URL | Current behavior |
-| --- | --- |
-| `/` | Temporary setup page |
-| `/health` | Nginx health, `200` |
+| URL           | Current behavior                          |
+| ------------- | ----------------------------------------- |
+| `/`           | Temporary setup page                      |
+| `/health`     | Nginx health, `200`                       |
 | `/health/php` | PHP database connectivity, `200` or `503` |
-| `/api/health` | Go database connectivity, `200` or `503` |
-| `/admin` | `503` until Nova is installed |
+| `/api/health` | Go database connectivity, `200` or `503`  |
+| `/admin`      | `503` until Nova is installed             |
 
 Services wait for their dependencies' health checks before startup, using [Compose startup conditions](https://docs.docker.com/compose/how-tos/startup-order/).
 
@@ -93,6 +93,17 @@ Keep Nova credentials in `.secrets/composer-auth.json`, separate from `.env`. Cr
 Only the Composer tool receives this file, mounted read-only at `/tmp/composer/auth.json` through a [Compose secret](https://docs.docker.com/compose/how-tos/use-secrets/). It is excluded from Git and Docker build contexts. The normal `docker compose up` does not require Nova credentials; the Composer tool does.
 
 Local Compose secrets use files on your machine, so this is not encrypted storage. For CI, supply the credentials from the CI secret store. When Nova package installation is added to the image build, use a [BuildKit secret mount](https://docs.docker.com/build/building/secrets/), without passing credentials through Dockerfile `ARG` or `ENV`. Nova installation is still pending.
+
+See [reviewer setup and Nova access](docs/reviewer-setup.md) for submission instructions.
+
+## Formatting
+
+```sh
+docker compose run --rm format
+docker compose run --rm format --check
+```
+
+These commands run Pint, gofmt, and Prettier through Docker; no local toolchain or Nova access is needed. The formatter hides `.secrets/`, `.git/`, and the local `.env` behind container mounts. GitHub Actions runs the check on pushes and pull requests. See [CONTRIBUTING.md](CONTRIBUTING.md) for covered file types.
 
 ## Engineering approach
 

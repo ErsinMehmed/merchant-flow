@@ -1,0 +1,17 @@
+.git/
+.secrets/
+.env
+.env.*
+IMPLEMENTATION_LOG.md
+**/auth.json
+**/vendor/
+**/node_modules/
+**/dist/
+**/coverage/
+**/.pint.cache
+**/.php-cs-fixer.cache
+**/*.log
+php/storage/
+php/bootstrap/cache/
+php/app/Containers/Vendor/
+artifacts/

@@ -1,0 +1,7 @@
+{
+  "name": "merchant-flow-format",
+  "private": true,
+  "dependencies": {
+    "prettier": "3.9.9"
+  }
+}

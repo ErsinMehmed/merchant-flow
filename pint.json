@@ -1,0 +1,4 @@
+{
+  "preset": "laravel",
+  "exclude": ["app/Containers/Vendor", "bootstrap/cache", "storage"]
+}

@@ -16,6 +16,8 @@ IMPLEMENTATION_LOG.md
 **/node_modules
 **/dist
 **/coverage
+**/.pint.cache
+**/.php-cs-fixer.cache
 **/*.log
 .idea
 .vscode

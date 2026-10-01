@@ -1,0 +1,11 @@
+{
+  "name": "merchant-flow/format",
+  "description": "PHP formatting tools",
+  "require": {
+    "laravel/pint": "1.32.1"
+  },
+  "config": {
+    "allow-plugins": false,
+    "sort-packages": true
+  }
+}

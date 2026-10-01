@@ -8,7 +8,10 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 2
 
-[*.php]
+[*.{php,sh,conf,ini}]
+indent_size = 4
+
+[Dockerfile]
 indent_size = 4
 
 [*.go]
