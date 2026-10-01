@@ -1,0 +1,465 @@
+{
+  "description": "Charge state transitions shared by the PHP and Go test suites. Both implementations must produce the same resulting amounts and status, or the same error code. Amounts are minor units.",
+  "cases": [
+    {
+      "name": "create and capture immediately",
+      "operation": {
+        "type": "create",
+        "amount": 5000,
+        "capture": true,
+        "account": { "status": "active", "active_yn": true }
+      },
+      "expect": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "refunded": false
+      }
+    },
+    {
+      "name": "create authorization only",
+      "operation": {
+        "type": "create",
+        "amount": 5000,
+        "capture": false,
+        "account": { "status": "active", "active_yn": true }
+      },
+      "expect": {
+        "status": "authorized",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "refunded": false
+      }
+    },
+    {
+      "name": "create with the maximum amount",
+      "operation": {
+        "type": "create",
+        "amount": 99999999,
+        "capture": true,
+        "account": { "status": "active", "active_yn": true }
+      },
+      "expect": {
+        "status": "captured",
+        "amount": 99999999,
+        "amount_captured": 99999999,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "refunded": false
+      }
+    },
+    {
+      "name": "create with zero amount",
+      "operation": {
+        "type": "create",
+        "amount": 0,
+        "capture": true,
+        "account": { "status": "active", "active_yn": true }
+      },
+      "expect": { "error": "invalid_amount" }
+    },
+    {
+      "name": "create with negative amount",
+      "operation": {
+        "type": "create",
+        "amount": -100,
+        "capture": true,
+        "account": { "status": "active", "active_yn": true }
+      },
+      "expect": { "error": "invalid_amount" }
+    },
+    {
+      "name": "create above the maximum amount",
+      "operation": {
+        "type": "create",
+        "amount": 100000000,
+        "capture": true,
+        "account": { "status": "active", "active_yn": true }
+      },
+      "expect": { "error": "invalid_amount" }
+    },
+    {
+      "name": "create on a suspended account",
+      "operation": {
+        "type": "create",
+        "amount": 5000,
+        "capture": true,
+        "account": { "status": "suspended", "active_yn": false }
+      },
+      "expect": { "error": "account_inactive" }
+    },
+    {
+      "name": "create on an active account with processing disabled",
+      "operation": {
+        "type": "create",
+        "amount": 5000,
+        "capture": true,
+        "account": { "status": "active", "active_yn": false }
+      },
+      "expect": { "error": "account_inactive" }
+    },
+    {
+      "name": "create on a pending account",
+      "operation": {
+        "type": "create",
+        "amount": 5000,
+        "capture": true,
+        "account": { "status": "pending", "active_yn": true }
+      },
+      "expect": { "error": "account_inactive" }
+    },
+    {
+      "name": "capture an authorized charge",
+      "charge": {
+        "status": "authorized",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "capture" },
+      "expect": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "refunded": false
+      }
+    },
+    {
+      "name": "capture twice",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "capture" },
+      "expect": { "error": "charge_not_capturable" }
+    },
+    {
+      "name": "capture a voided charge",
+      "charge": {
+        "status": "voided",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 5000,
+        "disputed": false
+      },
+      "operation": { "type": "capture" },
+      "expect": { "error": "charge_not_capturable" }
+    },
+    {
+      "name": "capture a failed charge",
+      "charge": {
+        "status": "failed",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "capture" },
+      "expect": { "error": "charge_not_capturable" }
+    },
+    {
+      "name": "full refund without an amount",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund" },
+      "expect": {
+        "status": "refunded",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 5000,
+        "amount_voided": 0,
+        "refunded": true
+      }
+    },
+    {
+      "name": "full refund with the exact amount",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund", "amount": 5000 },
+      "expect": {
+        "status": "refunded",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 5000,
+        "amount_voided": 0,
+        "refunded": true
+      }
+    },
+    {
+      "name": "partial refund keeps the charge captured",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund", "amount": 2000 },
+      "expect": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 2000,
+        "amount_voided": 0,
+        "refunded": false
+      }
+    },
+    {
+      "name": "second partial refund completes the refund",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 2000,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund", "amount": 3000 },
+      "expect": {
+        "status": "refunded",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 5000,
+        "amount_voided": 0,
+        "refunded": true
+      }
+    },
+    {
+      "name": "refund the remainder after a partial refund",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 2000,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund" },
+      "expect": {
+        "status": "refunded",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 5000,
+        "amount_voided": 0,
+        "refunded": true
+      }
+    },
+    {
+      "name": "refund more than captured",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund", "amount": 5001 },
+      "expect": { "error": "refund_exceeds_available" }
+    },
+    {
+      "name": "refund more than what is left after a partial refund",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 2000,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund", "amount": 3001 },
+      "expect": { "error": "refund_exceeds_available" }
+    },
+    {
+      "name": "refund a fully refunded charge",
+      "charge": {
+        "status": "refunded",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 5000,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund" },
+      "expect": { "error": "charge_already_refunded" }
+    },
+    {
+      "name": "refund an authorized charge",
+      "charge": {
+        "status": "authorized",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund", "amount": 1000 },
+      "expect": { "error": "charge_not_refundable" }
+    },
+    {
+      "name": "refund a voided charge",
+      "charge": {
+        "status": "voided",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 5000,
+        "disputed": false
+      },
+      "operation": { "type": "refund" },
+      "expect": { "error": "charge_not_refundable" }
+    },
+    {
+      "name": "refund a failed charge",
+      "charge": {
+        "status": "failed",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund" },
+      "expect": { "error": "charge_not_refundable" }
+    },
+    {
+      "name": "refund a disputed charge",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": true
+      },
+      "operation": { "type": "refund", "amount": 1000 },
+      "expect": { "error": "charge_disputed" }
+    },
+    {
+      "name": "refund zero",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund", "amount": 0 },
+      "expect": { "error": "invalid_amount" }
+    },
+    {
+      "name": "refund a negative amount",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "refund", "amount": -1 },
+      "expect": { "error": "invalid_amount" }
+    },
+    {
+      "name": "void an authorized charge",
+      "charge": {
+        "status": "authorized",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "void", "reason": "duplicate" },
+      "expect": {
+        "status": "voided",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 5000,
+        "refunded": false,
+        "void_reason": "duplicate"
+      }
+    },
+    {
+      "name": "void twice",
+      "charge": {
+        "status": "voided",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 5000,
+        "disputed": false
+      },
+      "operation": { "type": "void", "reason": "duplicate" },
+      "expect": { "error": "charge_not_voidable" }
+    },
+    {
+      "name": "void a captured charge",
+      "charge": {
+        "status": "captured",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "void", "reason": "requested_by_customer" },
+      "expect": { "error": "charge_not_voidable" }
+    },
+    {
+      "name": "void a refunded charge",
+      "charge": {
+        "status": "refunded",
+        "amount": 5000,
+        "amount_captured": 5000,
+        "amount_refunded": 5000,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "void", "reason": "requested_by_customer" },
+      "expect": { "error": "charge_not_voidable" }
+    },
+    {
+      "name": "void a failed charge",
+      "charge": {
+        "status": "failed",
+        "amount": 5000,
+        "amount_captured": 0,
+        "amount_refunded": 0,
+        "amount_voided": 0,
+        "disputed": false
+      },
+      "operation": { "type": "void", "reason": "abandoned" },
+      "expect": { "error": "charge_not_voidable" }
+    }
+  ]
+}

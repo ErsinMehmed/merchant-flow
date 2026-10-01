@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         cacheDirectory="storage/framework/cache/phpunit"
+         failOnRisky="true"
+         failOnWarning="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>app/Containers/*/*/Tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Functional">
+            <directory>app/Containers/*/*/Tests/Functional</directory>
+            <directory>tests/Feature</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+        <exclude>
+            <directory>app/Containers/*/*/Tests</directory>
+            <directory>app/Containers/*/*/Data/Migrations</directory>
+            <directory>app/Ship/Migrations</directory>
+        </exclude>
+    </source>
+    <php>
+        <!-- The database connection comes from the environment (see compose.yaml, php-test). -->
+        <env name="APP_ENV" value="testing" force="true"/>
+        <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/>
+        <env name="APP_DEBUG" value="false"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="LOG_CHANNEL" value="stderr"/>
+        <env name="SEED_DEMO_DATA" value="false" force="true"/>
+    </php>
+</phpunit>
