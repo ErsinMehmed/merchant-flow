@@ -1,18 +1,18 @@
-## Problem and resulting behavior
+## Changes
 
-Describe the concrete problem and what this change makes possible.
+What changed, and why?
 
 ## Design decisions
 
-Explain relevant tradeoffs, schema changes, and authorization or payment-rule implications. Omit this section for trivial changes.
+Note any schema changes or effects on permissions and payment rules. Remove this section if it does not apply.
 
 ## Verification
 
-List checks actually run and their results. Identify checks not run and explain why.
+List checks run and their results, including anything not checked.
 
 ## Review checklist
 
-- [ ] Scope is focused and responsibilities are clear.
+- [ ] The change stays within the stated scope.
 - [ ] Relevant permissions, tenant isolation, and payment edge cases are covered.
 - [ ] Setup or behavior changes are documented.
 - [ ] No secrets, real payment data, or generated dependencies are committed.

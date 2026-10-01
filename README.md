@@ -39,10 +39,10 @@ Laravel Nova requires authorized package access. Credentials must never be commi
 
 ## Engineering approach
 
-Apply SOLID where it clarifies responsibilities and dependency boundaries. Apply KISS by using framework conventions and avoiding abstractions without a concrete purpose. Test authorization, tenant isolation, financial invariants, and database concurrency against meaningful scenarios.
+Keep HTTP handlers small and separate permission checks from payment operations. Use framework conventions and add abstractions only when they solve a specific problem. Tests will focus on tenant isolation, permission changes, and concurrent refunds and voids.
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development and review expectations and [SECURITY.md](SECURITY.md) for handling vulnerabilities and secrets.
 
 ## Attribution and AI assistance
 
-The implementation is based on a technical assignment from Payarc; this repository is not an official Payarc product. AI has assisted with environment inspection and repository documentation. Its use will be recorded as implementation progresses. Submitted code must be reviewed, understood, and verified by the developer.
+Based on a Payarc take-home assignment. MerchantFlow is an independent portfolio project. AI was used to check the development environment and draft the initial documentation. The final project note will describe its use during implementation.
