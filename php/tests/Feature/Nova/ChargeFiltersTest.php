@@ -4,10 +4,13 @@ namespace Tests\Feature\Nova;
 
 use App\Containers\AppSection\Charge\Models\Charge;
 use App\Containers\AppSection\User\Models\User;
+use App\Nova\Filters\ChargeCreatedFromFilter;
+use App\Nova\Filters\ChargeCreatedToFilter;
 use App\Nova\Filters\ChargeCurrencyFilter;
 use App\Nova\Filters\ChargeDisputedFilter;
+use App\Nova\Filters\ChargeMerchantFilter;
 use App\Nova\Filters\ChargeStatusFilter;
-use Illuminate\Testing\TestResponse;
+use Carbon\CarbonImmutable;
 use Tests\TestCase;
 
 final class ChargeFiltersTest extends TestCase
@@ -21,37 +24,59 @@ final class ChargeFiltersTest extends TestCase
         $this->assertSame([$authorized->id], $this->ids([ChargeStatusFilter::class => 'authorized']));
         $this->assertSame([$refunded->id], $this->ids([ChargeCurrencyFilter::class => 'GBP']));
         $this->assertSame([$disputed->id], $this->ids([ChargeDisputedFilter::class => ChargeDisputedFilter::DISPUTED]));
+        $this->assertSame([$disputed->id], $this->ids([ChargeMerchantFilter::class => (string) $disputed->account_id]));
         $this->assertSame([], $this->ids([
             ChargeStatusFilter::class => 'authorized',
             ChargeCurrencyFilter::class => 'GBP',
         ]));
     }
 
-    /**
-     * Nova renders the menu as JSON in the page, so the labels and filter
-     * links can be checked in the HTML.
-     */
-    public function test_menu_links_open_charges_with_a_filter_applied(): void
+    public function test_date_filters_include_both_days(): void
     {
-        $response = $this->actingAs(User::factory()->admin()->create())->get('/admin/dashboards/main');
+        $before = $this->chargeOn('2026-09-09 23:59:59');
+        $first = $this->chargeOn('2026-09-10 00:00:00');
+        $last = $this->chargeOn('2026-09-12 23:59:59');
+        $after = $this->chargeOn('2026-09-13 00:00:00');
 
-        $response->assertOk();
-        foreach (['Authorized', 'Captured', 'Refunded', 'Voided', 'Disputed', 'Merchants', 'Agents'] as $label) {
-            $response->assertSee($label, false);
-        }
-        $response->assertSee('charges_filter=', false);
+        $this->assertSame([$first, $last], $this->ids([
+            ChargeCreatedFromFilter::class => '2026-09-10',
+            ChargeCreatedToFilter::class => '2026-09-12',
+        ]));
+        $this->assertSame([$before, $first, $last, $after], $this->ids([ChargeCreatedFromFilter::class => 'not-a-date']));
     }
 
-    public function test_menu_hides_resources_the_admin_cannot_view(): void
+    /**
+     * The inline filter row gets every filter with its key, so it writes the
+     * same URL parameter as Nova's dropdown.
+     */
+    public function test_charges_index_has_the_inline_filter_card(): void
     {
-        $admin = User::factory()->admin()->create();
-        $admin->roles->first()?->revokePermissionTo('charges.view');
+        $charge = Charge::factory()->create();
 
-        $response = $this->actingAs($admin->fresh())->get('/admin/dashboards/main');
+        $cards = $this->actingAs(User::factory()->admin()->create())
+            ->getJson('/nova-api/charges/cards')
+            ->assertOk()
+            ->json();
 
-        $response->assertOk();
-        $response->assertDontSee('charges_filter=', false);
-        $response->assertSee('Merchants', false);
+        $this->assertCount(1, $cards);
+        $this->assertSame('inline-filters', $cards[0]['component']);
+        $this->assertSame('charges', $cards[0]['resource']);
+        $this->assertSame([
+            ChargeStatusFilter::class,
+            ChargeMerchantFilter::class,
+            ChargeCurrencyFilter::class,
+            ChargeDisputedFilter::class,
+            ChargeCreatedFromFilter::class,
+            ChargeCreatedToFilter::class,
+        ], array_column($cards[0]['filters'], 'key'));
+        $this->assertContains(['label' => 'Authorized', 'value' => 'authorized'], $cards[0]['filters'][0]['options']);
+        $this->assertContains(['label' => $charge->account->business_name, 'value' => (string) $charge->account_id], $cards[0]['filters'][1]['options']);
+        $this->assertSame('date', $cards[0]['filters'][4]['type']);
+    }
+
+    private function chargeOn(string $createdAt): int
+    {
+        return Charge::factory()->create(['created_at' => CarbonImmutable::parse($createdAt, 'UTC')])->id;
     }
 
     /**
@@ -65,7 +90,6 @@ final class ChargeFiltersTest extends TestCase
             JSON_THROW_ON_ERROR,
         ));
 
-        /** @var TestResponse $response */
         $response = $this->actingAs(User::factory()->admin()->create())
             ->getJson('/nova-api/charges?filters='.urlencode($encoded))
             ->assertOk();

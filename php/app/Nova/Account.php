@@ -4,6 +4,9 @@ namespace App\Nova;
 
 use App\Containers\AppSection\Account\Enums\AccountStatus;
 use App\Containers\AppSection\Account\Models\Account as AccountModel;
+use App\Nova\Filters\AccountAgentFilter;
+use App\Nova\Filters\AccountProcessingFilter;
+use App\Nova\Filters\AccountStatusFilter;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Laravel\Nova\Fields\Badge;
@@ -101,5 +104,10 @@ final class Account extends Resource
     public static function relatableUsers(NovaRequest $request, Builder $query): Builder
     {
         return $query->where('is_merchant', true);
+    }
+
+    public function filters(NovaRequest $request): array
+    {
+        return [new AccountStatusFilter, new AccountProcessingFilter, new AccountAgentFilter];
     }
 }

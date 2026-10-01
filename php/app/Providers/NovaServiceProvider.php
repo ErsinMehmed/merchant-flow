@@ -3,14 +3,11 @@
 namespace App\Providers;
 
 use App\Containers\AppSection\Authentication\Actions\AuthenticateAdminAction;
-use App\Containers\AppSection\Charge\Enums\ChargeStatus;
 use App\Containers\AppSection\User\Models\User as UserModel;
 use App\Nova\Account;
 use App\Nova\Agent;
 use App\Nova\Charge;
 use App\Nova\Dashboards\Main;
-use App\Nova\Filters\ChargeDisputedFilter;
-use App\Nova\Filters\ChargeStatusFilter;
 use App\Nova\Permission;
 use App\Nova\Role;
 use App\Nova\User;
@@ -39,35 +36,29 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
         Nova::footer(static fn (): string => 'MerchantFlow admin · demo data only');
         Nova::mainMenu(static fn (): array => self::menu());
 
-        // Replaces the browser's native logout confirm() with a Nova-styled dialog.
         Nova::serving(static function (): void {
+            // Replaces the browser's native logout confirm() with a Nova-styled dialog.
             Nova::script('logout-confirm', resource_path('nova/logout-confirm.js'));
             Nova::style('logout-confirm', resource_path('nova/logout-confirm.css'));
+            // Always-visible filters above index tables (App\Nova\Cards\InlineFilters).
+            Nova::script('inline-filters', resource_path('nova/inline-filters.js'));
+            Nova::style('inline-filters', resource_path('nova/inline-filters.css'));
         });
     }
 
     /**
-     * Nova keeps filters in a dropdown; the common charge views are one click
-     * away in the menu instead. Every item is hidden from users who cannot
+     * Resources grouped by area. Every item is hidden from users who cannot
      * view the resource.
      *
      * @return list<MenuSection>
      */
     private static function menu(): array
     {
-        $byStatus = static fn (string $label, ChargeStatus $status): MenuItem => MenuItem::filter($label, Charge::class, new ChargeStatusFilter, $status->value);
-
         return [
             MenuSection::dashboard(Main::class)->icon('chart-bar'),
 
             MenuSection::make('Payments', [
                 MenuItem::resource(Charge::class),
-                $byStatus('Authorized', ChargeStatus::Authorized),
-                $byStatus('Captured', ChargeStatus::Captured),
-                $byStatus('Refunded', ChargeStatus::Refunded),
-                $byStatus('Voided', ChargeStatus::Voided),
-                $byStatus('Failed', ChargeStatus::Failed),
-                MenuItem::filter('Disputed', Charge::class, new ChargeDisputedFilter, ChargeDisputedFilter::DISPUTED),
             ])->icon('credit-card')->collapsable(),
 
             MenuSection::make('Network', [

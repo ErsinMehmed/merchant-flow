@@ -3,6 +3,7 @@
 namespace App\Nova;
 
 use App\Containers\AppSection\User\Models\User as UserModel;
+use App\Nova\Filters\UserTypeFilter;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Laravel\Nova\Fields\BelongsToMany;
 use Laravel\Nova\Fields\Boolean;
@@ -71,5 +72,10 @@ final class User extends Resource
             MorphToMany::make('Direct permissions', 'permissions', Permission::class),
             HasMany::make('Portal sessions', 'apiTokens', ApiToken::class),
         ];
+    }
+
+    public function filters(NovaRequest $request): array
+    {
+        return [new UserTypeFilter];
     }
 }

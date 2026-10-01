@@ -5,6 +5,8 @@ namespace App\Nova;
 use App\Containers\AppSection\Agent\Enums\AgentType;
 use App\Containers\AppSection\Agent\Models\Agent as AgentModel;
 use App\Containers\AppSection\Agent\Rules\ValidParentAgent;
+use App\Nova\Filters\AgentParentFilter;
+use App\Nova\Filters\AgentTypeFilter;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Laravel\Nova\Fields\BelongsTo;
@@ -70,5 +72,10 @@ final class Agent extends Resource
     public static function relatableUsers(NovaRequest $request, Builder $query): Builder
     {
         return $query->where('is_agent', true);
+    }
+
+    public function filters(NovaRequest $request): array
+    {
+        return [new AgentTypeFilter, new AgentParentFilter];
     }
 }
