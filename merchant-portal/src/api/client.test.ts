@@ -69,12 +69,14 @@ describe('api client', () => {
       sort: '-amount',
       status: 'captured',
       accountId: 3,
+      currency: 'EUR',
+      disputed: 'true',
       q: 'jane',
       createdFrom: '2026-09-01',
     });
 
     expect(fetchMock.mock.calls[0]![0]).toBe(
-      '/api/v1/charges?page=2&page_size=25&sort=-amount&status=captured&account_id=3&q=jane&created_from=2026-09-01',
+      '/api/v1/charges?page=2&page_size=25&sort=-amount&status=captured&account_id=3&currency=EUR&disputed=true&q=jane&created_from=2026-09-01',
     );
   });
 

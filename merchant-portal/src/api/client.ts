@@ -138,6 +138,8 @@ export const api = {
     if (query.sort) params.set('sort', query.sort);
     if (query.status) params.set('status', query.status);
     if (query.accountId) params.set('account_id', String(query.accountId));
+    if (query.currency) params.set('currency', query.currency);
+    if (query.disputed) params.set('disputed', query.disputed);
     if (query.q) params.set('q', query.q);
     if (query.createdFrom) params.set('created_from', query.createdFrom);
     if (query.createdTo) params.set('created_to', query.createdTo);

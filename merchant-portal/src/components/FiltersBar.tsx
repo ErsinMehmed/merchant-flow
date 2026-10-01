@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { Account, ChargeStatus } from '../api/types';
+import { CURRENCIES } from '../lib/money';
 import type { ChargeFilters } from './ChargesGrid';
 import { STATUS_OPTIONS } from './StatusBadge';
 
@@ -12,6 +13,8 @@ interface Props {
 export const EMPTY_FILTERS: ChargeFilters = {
   status: '',
   accountId: '',
+  currency: '',
+  disputed: '',
   q: '',
   createdFrom: '',
   createdTo: '',
@@ -39,7 +42,7 @@ export function FiltersBar({ accounts, value, onChange }: Props) {
         <span>Search</span>
         <input
           type="search"
-          placeholder="Customer email or transaction ID"
+          placeholder="Email or transaction ID"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -83,6 +86,36 @@ export function FiltersBar({ accounts, value, onChange }: Props) {
           </select>
         </label>
       )}
+
+      <label className="field">
+        <span>Currency</span>
+        <select
+          value={value.currency ?? ''}
+          onChange={(e) => onChange({ ...value, currency: e.target.value })}
+        >
+          <option value="">All currencies</option>
+          {CURRENCIES.map((currency) => (
+            <option key={currency}>{currency}</option>
+          ))}
+        </select>
+      </label>
+
+      <label className="field">
+        <span>Disputes</span>
+        <select
+          value={value.disputed ?? ''}
+          onChange={(e) =>
+            onChange({
+              ...value,
+              disputed: e.target.value as ChargeFilters['disputed'],
+            })
+          }
+        >
+          <option value="">All charges</option>
+          <option value="true">Disputed only</option>
+          <option value="false">Not disputed</option>
+        </select>
+      </label>
 
       <label className="field">
         <span>From</span>

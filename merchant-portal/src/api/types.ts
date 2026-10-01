@@ -59,6 +59,8 @@ export interface ChargeQuery {
   sort?: string;
   status?: ChargeStatus | '';
   accountId?: number | '';
+  currency?: string;
+  disputed?: '' | 'true' | 'false';
   q?: string;
   createdFrom?: string;
   createdTo?: string;
