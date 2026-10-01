@@ -1,22 +1,30 @@
+// Command api serves the merchant portal API over the database shared with
+// the PHP admin application.
 package main
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 	"errors"
 	"log/slog"
-	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/go-sql-driver/mysql"
+	"github.com/ErsinMehmed/merchant-flow/go-api/internal/auth"
+	"github.com/ErsinMehmed/merchant-flow/go-api/internal/charge"
+	"github.com/ErsinMehmed/merchant-flow/go-api/internal/config"
+	"github.com/ErsinMehmed/merchant-flow/go-api/internal/database"
+	"github.com/ErsinMehmed/merchant-flow/go-api/internal/httpapi"
+	"github.com/ErsinMehmed/merchant-flow/go-api/internal/idempotency"
 )
 
+const cleanupInterval = 10 * time.Minute
+
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
 	if err := run(); err != nil {
 		slog.Error("API stopped", "error", err)
 		os.Exit(1)
@@ -24,54 +32,41 @@ func main() {
 }
 
 func run() error {
-	config := mysql.NewConfig()
-	config.User = os.Getenv("DB_USERNAME")
-	config.Passwd = os.Getenv("DB_PASSWORD")
-	config.Net = "tcp"
-	config.Addr = net.JoinHostPort(os.Getenv("DB_HOST"), os.Getenv("DB_PORT"))
-	config.DBName = os.Getenv("DB_DATABASE")
-	config.ParseTime = true
-	config.Timeout = 3 * time.Second
-	config.ReadTimeout = 3 * time.Second
-	config.WriteTimeout = 3 * time.Second
-
-	connector, err := mysql.NewConnector(config)
+	cfg, err := config.Load()
 	if err != nil {
 		return err
 	}
-	db := sql.OpenDB(connector)
+
+	db, err := database.Open(cfg.Database)
+	if err != nil {
+		return err
+	}
 	defer db.Close()
-	db.SetMaxOpenConns(10)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(3 * time.Minute)
 
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
-		ctx, cancel := context.WithTimeout(r.Context(), 3*time.Second)
-		defer cancel()
-
-		w.Header().Set("Content-Type", "application/json")
-		w.Header().Set("Cache-Control", "no-store")
-		if err := db.PingContext(ctx); err != nil {
-			slog.Warn("database health check failed", "error", err)
-			w.WriteHeader(http.StatusServiceUnavailable)
-			_ = json.NewEncoder(w).Encode(map[string]string{"status": "unavailable", "service": "go-api"})
-			return
-		}
-		_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok", "service": "go-api"})
-	})
-
+	authService := auth.NewService(db, cfg.SessionTTL)
 	server := &http.Server{
-		Addr:              ":8081",
-		Handler:           mux,
+		Addr:              cfg.Addr,
+		Handler:           httpapi.New(cfg, db, authService, charge.NewService(db)).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
-		WriteTimeout:      10 * time.Second,
+		WriteTimeout:      15 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
+
+	go cleanup(ctx, func(ctx context.Context) {
+		if n, err := authService.Cleanup(ctx); err != nil {
+			slog.Warn("session cleanup failed", "error", err)
+		} else if n > 0 {
+			slog.Info("expired sessions removed", "count", n)
+		}
+		if _, err := idempotency.Cleanup(ctx, db, time.Now().UTC()); err != nil {
+			slog.Warn("idempotency cleanup failed", "error", err)
+		}
+	})
+
 	stopped := make(chan error, 1)
 	go func() {
 		slog.Info("API listening", "address", server.Addr)
@@ -85,8 +80,24 @@ func run() error {
 		}
 		return err
 	case <-ctx.Done():
-		shutdownContext, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		return server.Shutdown(shutdownContext)
+		return server.Shutdown(shutdownCtx)
+	}
+}
+
+// cleanup removes expired sessions and idempotency records periodically.
+func cleanup(ctx context.Context, task func(context.Context)) {
+	ticker := time.NewTicker(cleanupInterval)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			taskCtx, cancel := context.WithTimeout(ctx, time.Minute)
+			task(taskCtx)
+			cancel()
+		}
 	}
 }
