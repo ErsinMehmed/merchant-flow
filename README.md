@@ -50,7 +50,7 @@ That is the whole setup. There is no manual migration, seeding or asset step.
 | 4    | `go-api` | The merchant API. Starts only after `init` succeeded. It never creates or alters tables.                                                     |
 | 5    | `web`    | Nginx: the built React portal, `/admin` to PHP, `/api` to Go. The only service with a published port.                                        |
 
-Seeding is safe to repeat. Roles and permissions are created if missing, but existing role permissions are never reset, so changes made in Nova survive restarts. Demo users, merchants, agents and about 940 charges are created only on an empty database.
+Seeding is safe to repeat. Roles and permissions are created if missing, but existing role permissions are never reset, so changes made in Nova survive restarts. The demo data is created only on an empty database: 12 merchants (one pending, one suspended, one closed), 5 agents in two hierarchies, 12 users and about 22,000 charges over the last year in four currencies, so paging, sorting and filtering have real volume. A fixed random seed makes every fresh database identical; `DEMO_CHARGE_SCALE` (default `1`) changes the number of charges.
 
 ## URLs
 
@@ -65,13 +65,16 @@ Seeding is safe to repeat. Roles and permissions are created if missing, but exi
 
 All demo users share the password **`MerchantFlowDemo!2026`**. It exists only for the fictional local data.
 
-| Email                             | Role     | Admin portal     | Merchant portal                                                               |
-| --------------------------------- | -------- | ---------------- | ----------------------------------------------------------------------------- |
-| `admin@merchant-flow.test`        | admin    | Yes, full access | Every merchant, every action                                                  |
-| `merchant@merchant-flow.test`     | merchant | No               | Northwind Coffee Roasters and Fabrikam Fitness; create, capture, refund, void |
-| `merchant-two@merchant-flow.test` | merchant | No               | Contoso Books and Tailspin Toys (suspended: no new charges)                   |
-| `agent@merchant-flow.test`        | agent    | No               | Read-only: the merchants Harbor Payments serves (Northwind, Contoso)          |
-| `subagent@merchant-flow.test`     | agent    | No               | Read-only: Fabrikam Fitness (Summit Referral, a sub-agent of Harbor)          |
+| Email                               | Role     | Admin portal     | Merchant portal                                                                                        |
+| ----------------------------------- | -------- | ---------------- | ------------------------------------------------------------------------------------------------------ |
+| `admin@merchant-flow.test`          | admin    | Yes, full access | Every merchant, every action                                                                           |
+| `merchant@merchant-flow.test`       | merchant | No               | Northwind Coffee Roasters and Fabrikam Fitness; create, capture, refund, void                          |
+| `merchant-two@merchant-flow.test`   | merchant | No               | Contoso Books and Tailspin Toys (suspended: no new charges)                                            |
+| `merchant-three@merchant-flow.test` | merchant | No               | Adventure Works Cycles, Wide World Importers, Lucerne Publishing; four currencies                      |
+| `agent@merchant-flow.test`          | agent    | No               | Read-only: the four merchants Harbor Payments serves (Northwind, Contoso, Adventure Works, Wide World) |
+| `subagent@merchant-flow.test`       | agent    | No               | Read-only: Fabrikam Fitness and Lucerne Publishing (Summit Referral, a sub-agent of Harbor)            |
+
+More demo users exist for the remaining merchants and agents (`merchant-four@` to `merchant-six@`, `atlas-agent@`, `cedar-agent@`, `beacon-agent@`, all `@merchant-flow.test`); Nova lists them under **Users**.
 
 **Admin portal login:** open http://localhost:8080/admin and sign in with `admin@merchant-flow.test` / `MerchantFlowDemo!2026`. Agents and merchants get the same "credentials do not match" answer as a wrong password; Nova never starts a session for them.
 
@@ -178,6 +181,19 @@ docker compose run --rm format --check
 These are the seeded defaults; administrators can change role permissions or grant direct permissions to a user in Nova. The user type flags (`is_admin`, `is_agent`, `is_merchant`) are edited in Nova and keep the matching Spatie roles in sync; authorization in both PHP and Go reads only the Spatie tables.
 
 Scope: an admin sees every account; anyone else sees the accounts linked through `account_user` plus those served by their agents (`agent_user` → `agent_account`). A parent agent does not inherit its sub-agents' merchants.
+
+## Assumptions
+
+Where the assignment left room, I assumed the following:
+
+- A charge is created as captured by default; with `capture: false` it is only authorized and can be captured (`charges.capture`, an added permission) or voided later. Void applies only to authorized charges.
+- A partial refund keeps the status `captured` with `amount_refunded > 0`; the charge becomes `refunded` (and `refunded = true`) when nothing is left. Disputed charges cannot be refunded.
+- Suspended or disabled merchants (`status` not `active`, or `active_yn` false) cannot take new charges, but existing charges can still be refunded, voided or captured.
+- An agent sees the merchants its own agent records serve; a parent agent does not inherit its sub-agents' merchants.
+- An admin can also use the merchant portal and sees every merchant there.
+- Charges are a ledger: in Nova they can be created and then changed only through the capture, refund and void actions, never edited or deleted.
+- Supported currencies are USD, EUR, GBP and CAD, all with two decimals; amounts go up to 999,999.99.
+- Reviewers build the PHP image with their own Nova license; Nova is not redistributed in this repository.
 
 ## Merchant API
 

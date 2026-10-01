@@ -15,9 +15,14 @@ const DEMO_ACCOUNTS = [
     detail: 'Contoso Books, Tailspin Toys (suspended)',
   },
   {
+    email: 'merchant-three@merchant-flow.test',
+    label: 'Merchant',
+    detail: 'Three merchants, USD/EUR/GBP/CAD',
+  },
+  {
     email: 'agent@merchant-flow.test',
     label: 'Agent',
-    detail: 'Read-only: Northwind, Contoso',
+    detail: 'Read-only: the four Harbor Payments merchants',
   },
   {
     email: 'admin@merchant-flow.test',

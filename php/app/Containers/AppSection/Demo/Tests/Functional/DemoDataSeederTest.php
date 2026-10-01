@@ -14,7 +14,8 @@ final class DemoDataSeederTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['appSection-demo.enabled' => true]);
+        // A twentieth of the demo volume keeps the test quick.
+        config(['appSection-demo.enabled' => true, 'appSection-demo.charge_scale' => 0.05]);
     }
 
     public function test_seeds_every_role_with_the_documented_scope(): void
@@ -22,6 +23,7 @@ final class DemoDataSeederTest extends TestCase
         $this->seed(DemoDataSeeder_1::class);
 
         $this->assertSame(['admin'], $this->user('admin@merchant-flow.test')->getRoleNames()->all());
+        $this->assertSame(12, Account::query()->count());
         $this->assertSame(
             ['Fabrikam Fitness', 'Northwind Coffee Roasters'],
             $this->accountsOf('merchant@merchant-flow.test'),
@@ -31,16 +33,31 @@ final class DemoDataSeederTest extends TestCase
             $this->accountsOf('merchant-two@merchant-flow.test'),
         );
         $this->assertSame(
-            ['Contoso Books', 'Northwind Coffee Roasters'],
+            ['Adventure Works Cycles', 'Contoso Books', 'Northwind Coffee Roasters', 'Wide World Importers'],
             $this->agentAccountsOf('agent@merchant-flow.test'),
         );
-        $this->assertSame(['Fabrikam Fitness'], $this->agentAccountsOf('subagent@merchant-flow.test'));
+        // The sub-agent's merchants are not added to its parent's list above.
+        $this->assertSame(['Fabrikam Fitness', 'Lucerne Publishing'], $this->agentAccountsOf('subagent@merchant-flow.test'));
 
         foreach (['authorized', 'captured', 'refunded', 'voided', 'failed'] as $status) {
             $this->assertTrue(Charge::query()->where('status', $status)->exists(), "no {$status} charges");
         }
         $this->assertTrue(Charge::query()->where('status', 'captured')->where('amount_refunded', '>', 0)->exists());
         $this->assertTrue(Charge::query()->where('disputed', true)->exists());
+        $this->assertSame(['CAD', 'EUR', 'GBP', 'USD'], Charge::query()->distinct()->orderBy('currency')->pluck('currency')->all());
+    }
+
+    /**
+     * Authorizations lapse after about a week, so only recent ones stay open;
+     * a pending merchant has no history yet.
+     */
+    public function test_history_is_plausible(): void
+    {
+        $this->seed(DemoDataSeeder_1::class);
+
+        $this->assertFalse(Charge::query()->where('status', 'authorized')->where('created_at', '<', now()->subDays(8))->exists());
+        $this->assertSame(0, Account::query()->where('business_name', "Margie's Travel")->firstOrFail()->charges()->count());
+        $this->assertTrue(Charge::query()->where('created_at', '<', now()->subMonths(11))->exists());
     }
 
     public function test_second_run_changes_nothing(): void
