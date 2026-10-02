@@ -32,7 +32,7 @@ return [
     |
     */
 
-    'name' => env('NOVA_APP_NAME', env('APP_NAME')),
+    'name' => env('NOVA_APP_NAME', env('APP_NAME').' Admin'),
 
     /*
     |--------------------------------------------------------------------------
@@ -167,15 +167,11 @@ return [
     |
     */
 
-    // 'brand' => [
-    //     'logo' => resource_path('/img/example-logo.svg'),
-
-    //     'colors' => [
-    //         "400" => "24, 182, 155, 0.5",
-    //         "500" => "24, 182, 155",
-    //         "600" => "24, 182, 155, 0.75",
-    //     ]
-    // ],
+    'brand' => [
+        // Same mark as the merchant portal; the favicon is set in
+        // resources/nova/views/partials/meta.blade.php.
+        'logo' => resource_path('nova/logo.svg'),
+    ],
 
     /*
     |--------------------------------------------------------------------------

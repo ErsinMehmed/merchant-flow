@@ -9,7 +9,7 @@ x-database-environment: &database-environment
 
 x-php-environment: &php-environment
   <<: *database-environment
-  APP_NAME: MerchantFlow
+  APP_NAME: Merchant Flow
   APP_ENV: local
   APP_DEBUG: 'false'
   APP_URL: http://localhost:${APP_PORT:-8080}

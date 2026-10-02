@@ -1,4 +1,4 @@
-# MerchantFlow
+# Merchant Flow
 
 A small payments platform built as a take-home assignment: a Laravel/Apiato/Nova admin portal, a React merchant portal backed by a Go API, and one shared MySQL database. The PHP application owns the schema and the Spatie roles and permissions; the Go API reads the same tables on every request, so a permission change made in Nova applies to the merchant portal immediately.
 

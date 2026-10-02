@@ -1,4 +1,4 @@
-# MerchantFlow PHP application
+# Merchant Flow PHP application
 
 Laravel 12 on Apiato 13 with Laravel Nova 5 and Spatie Permission. It owns the shared database schema and serves the admin portal at `/admin`. Setup, demo accounts and test commands are in the [main README](../README.md).
 

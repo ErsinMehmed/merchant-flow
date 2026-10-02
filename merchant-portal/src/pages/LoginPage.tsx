@@ -59,7 +59,7 @@ export function LoginPage({ notice }: { notice?: string }) {
       <section className="login-card" aria-labelledby="login-title">
         <div className="brand brand-large">
           <span className="brand-mark" aria-hidden="true" />
-          MerchantFlow
+          Merchant Flow
         </div>
         <h1 id="login-title">Sign in to the merchant portal</h1>
 

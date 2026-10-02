@@ -16,6 +16,7 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\View;
 use Laravel\Fortify\Features;
 use Laravel\Nova\Dashboard;
 use Laravel\Nova\Http\Controllers\Pages\DashboardController as NovaDashboardController;
@@ -44,8 +45,12 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
 
         parent::boot();
 
+        // Views here replace Nova's own (the favicon in partials/meta).
+        // Not resources/views/vendor/nova: "vendor" paths are git- and Docker-ignored.
+        View::prependNamespace('nova', resource_path('nova/views'));
+
         Nova::withBreadcrumbs();
-        Nova::footer(static fn (): string => 'MerchantFlow admin · demo data only');
+        Nova::footer(static fn (): string => 'Merchant Flow admin · demo data only');
         Nova::mainMenu(static fn (): array => self::menu());
 
         Nova::serving(static function (): void {

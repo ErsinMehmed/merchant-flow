@@ -1,6 +1,6 @@
 # Security
 
-MerchantFlow is under development and is not ready for production use or real payment data.
+Merchant Flow is under development and is not ready for production use or real payment data.
 
 ## Reporting a vulnerability
 

@@ -2,7 +2,7 @@
     "$schema": "https://getcomposer.org/schema.json",
     "name": "merchant-flow/admin",
     "type": "project",
-    "description": "MerchantFlow administration application and schema owner",
+    "description": "Merchant Flow administration application and schema owner",
     "license": "proprietary",
     "repositories": [
         {

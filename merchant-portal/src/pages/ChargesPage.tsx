@@ -78,7 +78,7 @@ function Portal({ user }: { user: User }) {
       <header className="topbar">
         <div className="brand">
           <span className="brand-mark" aria-hidden="true" />
-          MerchantFlow
+          Merchant Flow
         </div>
         <div className="topbar-user">
           <span className="user-name">{user.name}</span>
