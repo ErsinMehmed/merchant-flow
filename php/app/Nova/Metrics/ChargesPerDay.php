@@ -11,7 +11,10 @@ final class ChargesPerDay extends Trend
 {
     public function calculate(NovaRequest $request): TrendResult
     {
-        return $this->countByDays($request, Charge::class);
+        // Nova shows the last point (today) as the headline number; label it.
+        return $this->countByDays($request, Charge::class)
+            ->suffix('today')
+            ->withoutSuffixInflection();
     }
 
     /** @return array<int|string, string> */
