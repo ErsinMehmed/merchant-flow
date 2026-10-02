@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import type { Account, ChargeStatus } from '../api/types';
 import { CURRENCIES } from '../lib/money';
 import type { ChargeFilters } from './ChargesGrid';
+import { DatePicker } from './DatePicker';
+import { Select } from './Select';
 import { STATUS_OPTIONS } from './StatusBadge';
 
 interface Props {
@@ -19,6 +21,22 @@ export const EMPTY_FILTERS: ChargeFilters = {
   createdFrom: '',
   createdTo: '',
 };
+
+const STATUSES = [
+  { value: '', label: 'All statuses' },
+  ...STATUS_OPTIONS.map(([value, label]) => ({ value, label })),
+];
+
+const CURRENCY_OPTIONS = [
+  { value: '', label: 'All currencies' },
+  ...CURRENCIES.map((currency) => ({ value: currency, label: currency })),
+];
+
+const DISPUTES = [
+  { value: '', label: 'All charges' },
+  { value: 'true', label: 'Disputed only' },
+  { value: 'false', label: 'Not disputed' },
+];
 
 export function FiltersBar({ accounts, value, onChange }: Props) {
   const [search, setSearch] = useState(value.q ?? '');
@@ -50,89 +68,71 @@ export function FiltersBar({ accounts, value, onChange }: Props) {
 
       <label className="field">
         <span>Status</span>
-        <select
+        <Select
           value={value.status ?? ''}
-          onChange={(e) =>
-            onChange({ ...value, status: e.target.value as ChargeStatus | '' })
+          options={STATUSES}
+          onChange={(status) =>
+            onChange({ ...value, status: status as ChargeStatus | '' })
           }
-        >
-          <option value="">All statuses</option>
-          {STATUS_OPTIONS.map(([status, label]) => (
-            <option key={status} value={status}>
-              {label}
-            </option>
-          ))}
-        </select>
+        />
       </label>
 
       {accounts.length > 1 && (
         <label className="field">
           <span>Merchant</span>
-          <select
-            value={value.accountId ?? ''}
-            onChange={(e) =>
-              onChange({
-                ...value,
-                accountId: e.target.value ? Number(e.target.value) : '',
-              })
+          <Select
+            value={String(value.accountId ?? '')}
+            options={[
+              { value: '', label: 'All merchants' },
+              ...accounts.map((a) => ({
+                value: String(a.id),
+                label: a.business_name,
+              })),
+            ]}
+            onChange={(id) =>
+              onChange({ ...value, accountId: id ? Number(id) : '' })
             }
-          >
-            <option value="">All merchants</option>
-            {accounts.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.business_name}
-              </option>
-            ))}
-          </select>
+          />
         </label>
       )}
 
       <label className="field">
         <span>Currency</span>
-        <select
+        <Select
           value={value.currency ?? ''}
-          onChange={(e) => onChange({ ...value, currency: e.target.value })}
-        >
-          <option value="">All currencies</option>
-          {CURRENCIES.map((currency) => (
-            <option key={currency}>{currency}</option>
-          ))}
-        </select>
+          options={CURRENCY_OPTIONS}
+          onChange={(currency) => onChange({ ...value, currency })}
+        />
       </label>
 
       <label className="field">
         <span>Disputes</span>
-        <select
+        <Select
           value={value.disputed ?? ''}
-          onChange={(e) =>
+          options={DISPUTES}
+          onChange={(disputed) =>
             onChange({
               ...value,
-              disputed: e.target.value as ChargeFilters['disputed'],
+              disputed: disputed as ChargeFilters['disputed'],
             })
           }
-        >
-          <option value="">All charges</option>
-          <option value="true">Disputed only</option>
-          <option value="false">Not disputed</option>
-        </select>
+        />
       </label>
 
       <label className="field">
         <span>From</span>
-        <input
-          type="date"
+        <DatePicker
           value={value.createdFrom ?? ''}
           max={value.createdTo || undefined}
-          onChange={(e) => onChange({ ...value, createdFrom: e.target.value })}
+          onChange={(createdFrom) => onChange({ ...value, createdFrom })}
         />
       </label>
       <label className="field">
         <span>To</span>
-        <input
-          type="date"
+        <DatePicker
           value={value.createdTo ?? ''}
           min={value.createdFrom || undefined}
-          onChange={(e) => onChange({ ...value, createdTo: e.target.value })}
+          onChange={(createdTo) => onChange({ ...value, createdTo })}
         />
       </label>
 

@@ -3,6 +3,7 @@ import { api, newIdempotencyKey } from '../api/client';
 import type { Account, Charge } from '../api/types';
 import { CURRENCIES, parseAmount } from '../lib/money';
 import { useSubmit } from '../lib/useSubmit';
+import { Select } from './Select';
 
 interface Props {
   accounts: Account[];
@@ -11,6 +12,8 @@ interface Props {
 }
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+const CURRENCY_OPTIONS = CURRENCIES.map((c) => ({ value: c, label: c }));
 
 export function CreateChargeDialog({ accounts, onCreated, onCancel }: Props) {
   const usable = accounts.filter((a) => a.accepts_charges);
@@ -74,18 +77,15 @@ export function CreateChargeDialog({ accounts, onCreated, onCancel }: Props) {
     <form className="dialog-body" onSubmit={onSubmit} noValidate>
       <label className="field">
         <span>Merchant account</span>
-        <select
+        <Select
           value={accountId}
-          onChange={(e) => setAccountId(e.target.value)}
-          aria-invalid={!!errors.account_id}
-        >
-          <option value="">Choose…</option>
-          {usable.map((a) => (
-            <option key={a.id} value={a.id}>
-              {a.business_name} · MID {a.mid}
-            </option>
-          ))}
-        </select>
+          options={usable.map((a) => ({
+            value: String(a.id),
+            label: `${a.business_name} · MID ${a.mid}`,
+          }))}
+          onChange={setAccountId}
+          invalid={!!errors.account_id}
+        />
         {errors.account_id && (
           <small className="field-error">{errors.account_id}</small>
         )}
@@ -107,14 +107,11 @@ export function CreateChargeDialog({ accounts, onCreated, onCancel }: Props) {
         </label>
         <label className="field">
           <span>Currency</span>
-          <select
+          <Select
             value={currency}
-            onChange={(e) => setCurrency(e.target.value)}
-          >
-            {CURRENCIES.map((c) => (
-              <option key={c}>{c}</option>
-            ))}
-          </select>
+            options={CURRENCY_OPTIONS}
+            onChange={setCurrency}
+          />
         </label>
       </div>
 

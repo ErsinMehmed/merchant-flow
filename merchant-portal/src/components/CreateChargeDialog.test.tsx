@@ -35,9 +35,17 @@ describe('CreateChargeDialog', () => {
       />,
     );
 
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Merchant account' }),
+    );
+    expect(screen.getByRole('option', { name: /Northwind/ })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
     expect(
       screen.queryByRole('option', { name: /Tailspin/ }),
     ).not.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
 
     await userEvent.type(screen.getByLabelText('Amount'), '12.5');
     await userEvent.type(

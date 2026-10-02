@@ -19,3 +19,13 @@ if (!HTMLDialogElement.prototype.showModal) {
     this.dispatchEvent(new Event('close'));
   };
 }
+
+// jsdom hides [popover] elements but has no API to show them.
+if (!HTMLElement.prototype.showPopover) {
+  HTMLElement.prototype.showPopover = function showPopover(this: HTMLElement) {
+    this.style.display = 'block';
+  };
+  HTMLElement.prototype.hidePopover = function hidePopover(this: HTMLElement) {
+    this.style.display = '';
+  };
+}

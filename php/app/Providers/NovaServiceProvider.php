@@ -40,6 +40,9 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
             // Replaces the browser's native logout confirm() with a Nova-styled dialog.
             Nova::script('logout-confirm', resource_path('nova/logout-confirm.js'));
             Nova::style('logout-confirm', resource_path('nova/logout-confirm.css'));
+            // Styled list and calendar for every select and date field.
+            Nova::script('form-controls', resource_path('nova/form-controls.js'));
+            Nova::style('form-controls', resource_path('nova/form-controls.css'));
             // Always-visible filters above index tables (App\Nova\Cards\InlineFilters).
             Nova::script('inline-filters', resource_path('nova/inline-filters.js'));
             Nova::style('inline-filters', resource_path('nova/inline-filters.css'));

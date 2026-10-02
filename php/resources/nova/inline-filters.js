@@ -71,6 +71,8 @@
         text.textContent = 'Per page';
 
         const select = document.createElement('select');
+        select.className =
+            'form-control form-input form-control-bordered h-8 text-xs';
         const current =
             params().get(`${card.resource}_per_page`) ??
             String(card.perPageOptions[0]);
@@ -177,42 +179,33 @@
                     applyFilters(this.card, {});
                 },
 
+                // Native controls with Nova's input classes; form-controls.js
+                // puts the styled list and calendar in front of them. The
+                // value is bound on the control itself, which that script
+                // watches.
                 control(filter) {
-                    const value = this.values[filter.key] ?? '';
-                    const onChange = (event) =>
-                        this.change(filter.key, event.target.value);
+                    const value = String(this.values[filter.key] ?? '');
+                    const attributes = {
+                        class: 'form-control form-input form-control-bordered w-full',
+                        value,
+                        onChange: (event) =>
+                            this.change(filter.key, event.target.value),
+                    };
 
                     if (filter.type === 'date') {
                         return h('input', {
+                            ...attributes,
                             type: 'date',
-                            class: 'mf-filters__input',
-                            value,
-                            onChange,
+                            placeholder: 'Any date',
                         });
                     }
 
-                    return h(
-                        'select',
-                        { class: 'mf-filters__input', onChange },
-                        [
-                            h(
-                                'option',
-                                { value: '', selected: value === '' },
-                                'All',
-                            ),
-                            ...filter.options.map((option) =>
-                                h(
-                                    'option',
-                                    {
-                                        value: option.value,
-                                        selected:
-                                            String(value) === option.value,
-                                    },
-                                    option.label,
-                                ),
-                            ),
-                        ],
-                    );
+                    return h('select', attributes, [
+                        h('option', { value: '' }, 'All'),
+                        ...filter.options.map((option) =>
+                            h('option', { value: option.value }, option.label),
+                        ),
+                    ]);
                 },
             },
 

@@ -3,6 +3,7 @@ import { api, newIdempotencyKey } from '../api/client';
 import type { Charge, VoidReason } from '../api/types';
 import { formatMoney, parseAmount, toInputAmount } from '../lib/money';
 import { useSubmit } from '../lib/useSubmit';
+import { Select } from './Select';
 
 interface ActionProps {
   charge: Charge;
@@ -95,11 +96,11 @@ export function RefundForm({ charge, onDone, onCancel }: ActionProps) {
   );
 }
 
-const VOID_REASONS: [VoidReason, string][] = [
-  ['requested_by_customer', 'Requested by customer'],
-  ['duplicate', 'Duplicate'],
-  ['fraudulent', 'Fraudulent'],
-  ['abandoned', 'Abandoned'],
+const VOID_REASONS: { value: VoidReason; label: string }[] = [
+  { value: 'requested_by_customer', label: 'Requested by customer' },
+  { value: 'duplicate', label: 'Duplicate' },
+  { value: 'fraudulent', label: 'Fraudulent' },
+  { value: 'abandoned', label: 'Abandoned' },
 ];
 
 export function VoidForm({ charge, onDone, onCancel }: ActionProps) {
@@ -125,16 +126,11 @@ export function VoidForm({ charge, onDone, onCancel }: ActionProps) {
       </p>
       <label className="field">
         <span>Reason</span>
-        <select
+        <Select
           value={reason}
-          onChange={(e) => setReason(e.target.value as VoidReason)}
-        >
-          {VOID_REASONS.map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </select>
+          options={VOID_REASONS}
+          onChange={(value) => setReason(value as VoidReason)}
+        />
       </label>
 
       {error && (

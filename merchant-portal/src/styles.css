@@ -116,6 +116,8 @@ code,
 .button:focus-visible,
 .link-button:focus-visible,
 .icon-button:focus-visible,
+.control:focus-visible,
+.panel button:focus-visible,
 input:focus-visible,
 select:focus-visible {
   outline: 3px solid rgb(31 79 216 / 35%);
@@ -192,7 +194,8 @@ select:focus-visible {
 }
 
 .field input,
-.field select {
+.field select,
+.control {
   min-height: 38px;
   padding: 0 0.7rem;
   border: 1px solid var(--border);
@@ -204,8 +207,266 @@ select:focus-visible {
 }
 
 .field input[aria-invalid='true'],
-.field select[aria-invalid='true'] {
+.field select[aria-invalid='true'],
+.control[aria-invalid='true'] {
   border-color: var(--danger);
+}
+
+/* Select and date picker triggers (Select.tsx, DatePicker.tsx) */
+
+.control {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.control:hover {
+  border-color: #b9c2d0;
+}
+
+.control[aria-expanded='true'] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(31 79 216 / 14%);
+}
+
+.control-value,
+.control-placeholder {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.control-placeholder {
+  color: var(--muted);
+}
+
+.control .icon {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.icon-chevron {
+  transition: transform 0.15s;
+}
+
+.control[aria-expanded='true'] .icon-chevron {
+  transform: rotate(180deg);
+}
+
+/* Popup panels. They use the Popover API, so they sit in the top layer;
+   the position is set by useAnchoredPanel. */
+
+.panel {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  padding: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+  box-shadow:
+    0 12px 32px rgb(16 24 40 / 14%),
+    0 2px 6px rgb(16 24 40 / 8%);
+  animation: panel-in 0.12s ease-out;
+}
+
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.listbox {
+  max-height: 280px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.listbox-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.listbox-option.is-active {
+  background: #eef3ff;
+}
+
+.listbox-option[aria-selected='true'] {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.calendar {
+  width: 292px;
+  padding: 0.75rem;
+}
+
+/* Zero specificity, so the classes below win. */
+:where(.calendar button) {
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.calendar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.4rem;
+}
+
+.calendar-nav {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  color: var(--muted);
+}
+
+.calendar-title {
+  padding: 0.3rem 0.6rem;
+  border-radius: 6px;
+  font-weight: 700;
+}
+
+.calendar-nav:hover,
+.calendar-title:hover,
+.calendar-day:hover,
+.calendar-month:hover:not(:disabled) {
+  background: var(--bg);
+}
+
+.calendar-grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.calendar-grid th {
+  padding: 0.25rem 0;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.calendar-grid td {
+  padding: 1px;
+  text-align: center;
+}
+
+.calendar-day {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.calendar-day.is-outside {
+  color: #a3abb9;
+}
+
+.calendar-day.is-today {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.calendar-day.is-today::after {
+  content: '';
+  position: absolute;
+  bottom: 5px;
+  left: calc(50% - 2px);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.calendar-day.is-selected,
+.calendar-month.is-selected {
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+}
+
+.calendar-day.is-selected:hover,
+.calendar-month.is-selected:hover {
+  background: var(--accent-dark);
+}
+
+.calendar-day[aria-disabled='true'],
+.calendar-month:disabled {
+  background: none;
+  color: #c3c9d4;
+  text-decoration: line-through;
+  cursor: not-allowed;
+}
+
+.calendar-months {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.35rem;
+  padding: 0.25rem 0;
+}
+
+.calendar-month {
+  height: 44px;
+  border-radius: 8px;
+}
+
+.calendar-foot {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
+
+.calendar-action {
+  padding: 0.3rem 0.55rem;
+  border-radius: 6px;
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.calendar-action:hover:not(:disabled) {
+  background: #eef3ff;
+}
+
+.calendar-action:disabled {
+  color: var(--muted);
+  opacity: 0.6;
+  cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel {
+    animation: none;
+  }
+
+  .control,
+  .icon-chevron {
+    transition: none;
+  }
 }
 
 .field-error {
@@ -593,7 +854,7 @@ select:focus-visible {
   }
 
   .field-search {
-    flex-basis: 100% !important;
+    flex-basis: 100%;
   }
 
   .grid-wrap {

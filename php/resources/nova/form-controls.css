@@ -1,0 +1,331 @@
+/* Styled selects and date pickers (resources/nova/form-controls.js). Colours
+   come from Nova's theme variables, so light and dark themes both work. */
+
+/* The native control stays in the DOM for Nova but out of sight. */
+select[data-mf-control],
+input[data-mf-control] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0;
+    pointer-events: none;
+    clip-path: inset(50%);
+}
+
+/* Nova's own arrow next to a select; the trigger draws its own. */
+[data-mf-control] + .mf-control + .pointer-events-none {
+    display: none;
+}
+
+button.mf-control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+button.mf-control:disabled {
+    cursor: default;
+}
+
+button.mf-control[aria-expanded='true'] {
+    box-shadow: 0 0 0 2px rgba(var(--colors-primary-500));
+}
+
+.mf-control__value {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mf-control__placeholder {
+    color: rgba(var(--colors-gray-400));
+}
+
+.mf-icon {
+    flex-shrink: 0;
+    width: 1rem;
+    height: 1rem;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.mf-control .mf-icon {
+    color: rgba(var(--colors-gray-400));
+}
+
+.mf-control__chevron {
+    transition: transform 0.15s;
+}
+
+.mf-control[aria-expanded='true'] .mf-control__chevron {
+    transform: rotate(180deg);
+}
+
+/* Popups. Manual popovers in the top layer; form-controls.js sets the
+   position. The z-index only matters without the Popover API. */
+
+.mf-popup {
+    position: fixed;
+    inset: auto;
+    z-index: 2000;
+    margin: 0;
+    padding: 0.25rem;
+    border: 1px solid rgba(var(--colors-gray-200));
+    border-radius: 0.5rem;
+    background: #fff;
+    color: rgba(var(--colors-gray-700));
+    font-size: 0.875rem;
+    line-height: 1.25rem;
+    box-shadow:
+        0 12px 32px rgb(15 23 42 / 0.14),
+        0 2px 6px rgb(15 23 42 / 0.08);
+    animation: mf-popup-in 0.12s ease-out;
+}
+
+.dark .mf-popup {
+    border-color: rgba(var(--colors-gray-700));
+    background: rgba(var(--colors-gray-800));
+    color: rgba(var(--colors-gray-200));
+}
+
+@keyframes mf-popup-in {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+.mf-listbox {
+    max-height: 18rem;
+    overflow-y: auto;
+    list-style: none;
+}
+
+.mf-listbox__option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.4rem 0.6rem;
+    border-radius: 0.375rem;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.mf-listbox__option.is-active {
+    background: rgba(var(--colors-primary-500), 0.1);
+}
+
+.mf-listbox__option[aria-selected='true'] {
+    color: rgba(var(--colors-primary-600));
+    font-weight: 600;
+}
+
+.dark .mf-listbox__option.is-active {
+    background: rgba(var(--colors-primary-500), 0.18);
+}
+
+.dark .mf-listbox__option[aria-selected='true'] {
+    color: rgba(var(--colors-primary-400));
+}
+
+.mf-listbox__option[aria-disabled='true'] {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* Calendar */
+
+.mf-calendar {
+    width: 18.25rem;
+    padding: 0.75rem;
+}
+
+/* Zero specificity, so the classes below win. */
+:where(.mf-calendar button) {
+    border: 0;
+    background: none;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.mf-calendar button:focus-visible {
+    outline: 2px solid rgba(var(--colors-primary-500));
+    outline-offset: 1px;
+}
+
+.mf-calendar__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.4rem;
+}
+
+.mf-calendar__nav {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.375rem;
+    color: rgba(var(--colors-gray-500));
+}
+
+.mf-calendar__title {
+    padding: 0.3rem 0.6rem;
+    border-radius: 0.375rem;
+    font-weight: 700;
+}
+
+.mf-calendar__nav:hover,
+.mf-calendar__title:hover,
+.mf-calendar__day:hover,
+.mf-calendar__month:hover:not(:disabled) {
+    background: rgba(var(--colors-gray-100));
+}
+
+.dark .mf-calendar__nav:hover,
+.dark .mf-calendar__title:hover,
+.dark .mf-calendar__day:hover,
+.dark .mf-calendar__month:hover:not(:disabled) {
+    background: rgba(var(--colors-gray-700));
+}
+
+.mf-calendar__grid {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+}
+
+.mf-calendar__grid th {
+    padding: 0.25rem 0;
+    color: rgba(var(--colors-gray-400));
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.mf-calendar__grid td {
+    padding: 1px;
+    text-align: center;
+}
+
+.mf-calendar__day {
+    position: relative;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 0.5rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.mf-calendar__day.is-outside {
+    color: rgba(var(--colors-gray-400));
+}
+
+.mf-calendar__day.is-today {
+    color: rgba(var(--colors-primary-600));
+    font-weight: 700;
+}
+
+.dark .mf-calendar__day.is-today {
+    color: rgba(var(--colors-primary-400));
+}
+
+.mf-calendar__day.is-today::after {
+    content: '';
+    position: absolute;
+    bottom: 5px;
+    left: calc(50% - 2px);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.mf-calendar__day.is-selected,
+.mf-calendar__month.is-selected,
+.dark .mf-calendar__day.is-selected,
+.dark .mf-calendar__month.is-selected {
+    background: rgba(var(--colors-primary-500));
+    color: #fff;
+    font-weight: 600;
+}
+
+.dark .mf-calendar__day.is-selected,
+.dark .mf-calendar__month.is-selected {
+    color: rgba(var(--colors-gray-900));
+}
+
+.mf-calendar__day[aria-disabled='true'],
+.mf-calendar__month:disabled {
+    background: none;
+    color: rgba(var(--colors-gray-300));
+    text-decoration: line-through;
+    cursor: not-allowed;
+}
+
+.dark .mf-calendar__day[aria-disabled='true'],
+.dark .mf-calendar__month:disabled {
+    background: none;
+    color: rgba(var(--colors-gray-600));
+}
+
+.mf-calendar__months {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.35rem;
+    padding: 0.25rem 0;
+}
+
+.mf-calendar__month {
+    height: 2.75rem;
+    border-radius: 0.5rem;
+}
+
+.mf-calendar__foot {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(var(--colors-gray-200));
+}
+
+.dark .mf-calendar__foot {
+    border-top-color: rgba(var(--colors-gray-700));
+}
+
+.mf-calendar__action {
+    padding: 0.3rem 0.55rem;
+    border-radius: 0.375rem;
+    color: rgba(var(--colors-primary-600));
+    font-weight: 700;
+}
+
+.dark .mf-calendar__action {
+    color: rgba(var(--colors-primary-400));
+}
+
+.mf-calendar__action:hover:not(:disabled) {
+    background: rgba(var(--colors-primary-500), 0.1);
+}
+
+.mf-calendar__action:disabled {
+    color: rgba(var(--colors-gray-400));
+    cursor: default;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .mf-popup {
+        animation: none;
+    }
+
+    .mf-control__chevron {
+        transition: none;
+    }
+}
