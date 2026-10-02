@@ -14,6 +14,8 @@ final class RefundChargeAction extends ParentAction
     ) {}
 
     /**
+     * Serialize refunds with other operations on the same charge.
+     *
      * @param  ?int  $amount  minor units; null refunds the remaining amount
      */
     public function run(int $chargeId, ?int $amount = null): Charge

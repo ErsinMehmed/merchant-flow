@@ -1,8 +1,7 @@
-// Nova's trash button on index tables opens a dropdown even when it holds a
-// single entry ("Delete Selected"), so every delete costs an extra click. When
-// the dropdown would offer only one action, the trash button opens that
-// action's confirmation modal straight away and drops the dropdown chevron.
-// With several entries (restore, force delete) the dropdown stays as it is.
+/**
+ * Open Nova's delete confirmation directly when the menu has one action.
+ * Keep the dropdown when restore or force-delete adds other choices.
+ */
 mfOverrideComponent('DeleteMenu', (DeleteMenu) => ({
     extends: DeleteMenu,
 
@@ -25,7 +24,8 @@ mfOverrideComponent('DeleteMenu', (DeleteMenu) => ({
     methods: {
         onlyAction() {
             const actions = [
-                this.shouldShowDeleteItem && this.confirmDeleteSelectedResources,
+                this.shouldShowDeleteItem &&
+                    this.confirmDeleteSelectedResources,
                 this.shouldShowRestoreItem && this.confirmRestore,
                 this.shouldShowForceDeleteItem &&
                     this.confirmForceDeleteSelectedResources,

@@ -13,6 +13,7 @@ final class CaptureChargeAction extends ParentAction
         private readonly LockChargeTask $lockChargeTask,
     ) {}
 
+    /** Serialize capture with other operations on the same charge. */
     public function run(int $chargeId): Charge
     {
         return DB::transaction(function () use ($chargeId): Charge {

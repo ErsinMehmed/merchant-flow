@@ -15,6 +15,7 @@ final class MoneyAmount
     /** Up to 999,999.99 with at most two decimals and no sign or separators. */
     public const INPUT_PATTERN = '/^\d{1,6}(\.\d{1,2})?$/';
 
+    /** Return null for malformed amounts or unsupported currencies. */
     public static function toMinorUnits(string $input, string $currency): ?int
     {
         $input = trim($input);

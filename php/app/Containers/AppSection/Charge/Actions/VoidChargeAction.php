@@ -14,6 +14,7 @@ final class VoidChargeAction extends ParentAction
         private readonly LockChargeTask $lockChargeTask,
     ) {}
 
+    /** Serialize void with capture and other operations on the same charge. */
     public function run(int $chargeId, VoidReason $reason): Charge
     {
         return DB::transaction(function () use ($chargeId, $reason): Charge {

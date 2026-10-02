@@ -1,19 +1,18 @@
-// Renders App\Nova\Cards\InlineFilters. Nova keeps filters and the page size
-// in a dropdown behind a button; this shows the filters as a row under the
-// search box and the page size in the pagination bar, and hides the dropdown
-// (inline-filters.css).
-//
-// It reads and writes the URL parameters Nova itself uses
-// (`<resource>_filter`: base64 JSON of [{class, value}], `<resource>_per_page`),
-// so the server-side filter classes still do the filtering and links stay
-// shareable. Nova offers no slot for this, so the two pieces are placed with
-// plain DOM calls; if the markup they look for is missing, the filters simply
-// stay where Nova renders cards.
+/**
+ * Show Nova's index filters beneath search while retaining its URL format:
+ * `<resource>_filter` (base64 JSON) and `<resource>_per_page`.
+ * If the expected markup is absent, Nova keeps its normal card placement.
+ */
 (() => {
     const { h } = window.Vue;
 
     const params = () => new URLSearchParams(window.location.search);
 
+    /**
+     * Decode the URL payload, treating malformed filter state as empty.
+     * @param {string} resource
+     * @returns {Record<string, unknown>}
+     */
     function readFilters(resource) {
         const raw = params().get(`${resource}_filter`);
         if (!raw) {
@@ -34,7 +33,7 @@
     const isSet = (value) =>
         value !== undefined && value !== null && value !== '';
 
-    // Any change starts again from the first page but keeps the sort order.
+    /** Reset pagination while preserving sort and unrelated query parameters. */
     function visit(resource, changes) {
         const query = params();
         query.delete(`${resource}_page`);

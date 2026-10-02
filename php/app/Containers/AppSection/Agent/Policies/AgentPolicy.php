@@ -8,6 +8,7 @@ use App\Containers\AppSection\Authorization\Enums\Permission;
 use App\Containers\AppSection\User\Models\User;
 use App\Ship\Parents\Policies\Policy as ParentPolicy;
 
+/** Gate agent management and its Nova relationships through one permission. */
 final class AgentPolicy extends ParentPolicy
 {
     public function viewAny(User $actor): bool

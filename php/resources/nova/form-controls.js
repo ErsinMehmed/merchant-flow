@@ -1,10 +1,7 @@
-// Nova draws selects and date fields with the browser's native controls, so
-// their open list and calendar ignore the admin theme. This puts a styled
-// trigger and popup in front of each one (forms, action modals, metric
-// ranges, the inline filters) and keeps the native element as the source of
-// truth: Nova's components stay bound to it, and a pick sets its value and
-// fires the input and change events a user's pick would. Multiple selects
-// are left alone.
+/**
+ * Style Nova's select and date popups while keeping the native element as the
+ * value source for Nova's bindings and validation. Multiple selects stay native.
+ */
 (() => {
     const CONTROLS =
         'select:not([multiple]):not([data-mf-control]), input[type="date"]:not([data-mf-control])';
@@ -30,6 +27,11 @@
     const toIso = (date) =>
         `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 
+    /**
+     * Parse a calendar day in local time; reject normalized invalid dates.
+     * @param {string} value
+     * @returns {Date | null}
+     */
     function parseIso(value) {
         const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
         if (!match) {
@@ -80,8 +82,12 @@
         !event.metaKey &&
         !event.altKey;
 
-    // Vue sets `value` and `selectedIndex` as properties, which fires no
-    // event, so the trigger is redrawn from the property setters.
+    /**
+     * Observe property writes that Vue performs without dispatching events.
+     * @param {HTMLElement} element
+     * @param {string[]} properties
+     * @param {() => void} callback
+     */
     function onAssign(element, properties, callback) {
         const prototype = Object.getPrototypeOf(element);
         for (const property of properties) {
@@ -179,10 +185,13 @@
         control.dispatchEvent(new Event('change', { bubbles: true }));
     }
 
-    // The popup is a manual popover, so it is drawn in the top layer, above
-    // Nova's modals and never clipped by a scrolling parent. Inside a modal it
-    // is placed in the modal's content, which keeps it inside the modal's
-    // focus trap. Returns a function that closes it.
+    /**
+     * Open a popover above scrolling content, retaining a modal's focus trap.
+     * @param {HTMLElement} trigger
+     * @param {HTMLElement} panel
+     * @param {() => void} onClosed
+     * @returns {() => void} Cleanup and close the popover.
+     */
     function openPopup(trigger, panel, onClosed) {
         panel.setAttribute('popover', 'manual');
         (trigger.closest('.modal > div') ?? document.body).append(panel);

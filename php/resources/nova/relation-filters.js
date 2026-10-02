@@ -1,14 +1,7 @@
-// Relationship tables on detail pages (an agent's merchants, users, ...) get
-// no cards, so App\Nova\Cards\InlineFilters cannot reach them and Nova keeps
-// their filters in the funnel dropdown. For those tables Nova's FilterMenu is
-// replaced with the same filter row the resource indexes show: under the
-// table's search box, the same controls and classes (inline-filters.css,
-// form-controls.js), and the page size in the pagination bar.
-//
-// The controls drive Nova's own filter state in the store, exactly as the
-// dropdown did, so Nova still writes the `<relationship>_filter` parameter
-// and reloads the table. Top-level indexes keep the dropdown hidden behind
-// the InlineFilters card.
+/**
+ * Put relationship filters below the search box, where Nova cannot render an
+ * InlineFilters card. The controls keep Nova's own filter state and URL format.
+ */
 (() => {
     const { h, Teleport, resolveComponent } = window.Vue;
 
@@ -110,7 +103,8 @@
                 const attributes = {
                     class: 'form-control form-input form-control-bordered w-full',
                     value: String(filter.currentValue ?? ''),
-                    onChange: (event) => this.change(filter, event.target.value),
+                    onChange: (event) =>
+                        this.change(filter, event.target.value),
                 };
 
                 if (filter.component === 'date-filter') {

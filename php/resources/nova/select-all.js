@@ -1,8 +1,7 @@
-// The select-all checkbox above index tables opens a dropdown with "Select
-// this page" and "Select all". When every row is on one page the two are the
-// same, so the checkbox then works as a plain checkbox: a click selects all
-// rows, or clears the selection if any rows are selected. With more pages the
-// dropdown stays as it is.
+/**
+ * Toggle all rows directly when an index has one page; keep Nova's dropdown
+ * when selecting the current page differs from selecting every matching row.
+ */
 mfOverrideComponent('SelectAllDropdown', (SelectAllDropdown) => ({
     extends: SelectAllDropdown,
 
@@ -57,7 +56,9 @@ mfOverrideComponent('SelectAllDropdown', (SelectAllDropdown) => ({
             // Capture phase: stops the dropdown trigger from ever opening.
             event.preventDefault();
             event.stopPropagation();
-            this.$emit(this.mfSelectedCount > 0 ? 'deselect' : 'toggle-select-all');
+            this.$emit(
+                this.mfSelectedCount > 0 ? 'deselect' : 'toggle-select-all',
+            );
         },
 
         markDirect() {

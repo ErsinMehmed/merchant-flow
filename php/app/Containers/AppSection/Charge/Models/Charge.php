@@ -61,6 +61,7 @@ final class Charge extends ParentModel
         ];
     }
 
+    /** Build a charge without persisting it; the caller decides when to save. */
     public static function initiate(
         Account $account,
         int $amount,

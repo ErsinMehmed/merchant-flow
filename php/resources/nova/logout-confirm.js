@@ -1,7 +1,7 @@
-// Nova's user menu asks "Are you sure you want to log out?" with the browser's
-// native confirm(), which cannot be styled. This answers that one prompt with a
-// dialog that matches Nova's own confirmation modals, then runs the same logout
-// flow as the menu. Every other confirm() still goes to the browser.
+/**
+ * Replace only Nova's logout confirm() with a styled dialog, then dispatch
+ * Nova's usual logout action. Other confirm() calls remain native.
+ */
 (() => {
     const LOGOUT_PROMPT = 'Are you sure you want to log out?';
     const nativeConfirm = window.confirm.bind(window);
