@@ -20,27 +20,34 @@ use App\Nova\Filters\ChargeStatusFilter;
 use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
+use Laravel\Nova\Actions\Action;
 use Laravel\Nova\Fields\Badge;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\Boolean;
 use Laravel\Nova\Fields\DateTime;
+use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Fields\Text;
+use Laravel\Nova\Filters\Filter;
 use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Panel;
 
 /**
  * Charges are created here or through the Go API and afterwards changed only
  * by the capture, refund and void actions, which apply the same rules as Go.
+ *
+ * @phpstan-extends Resource<ChargeModel>
  */
 final class Charge extends Resource
 {
+    /** @var class-string<ChargeModel> */
     public static $model = ChargeModel::class;
 
     public static $title = 'external_transaction_id';
 
+    /** @var list<string> */
     public static $search = ['id', 'external_transaction_id', 'customer_email'];
 
     public static $group = 'Payments';
@@ -50,6 +57,7 @@ final class Charge extends Resource
 
     public static $perPageOptions = [25, 50, 100];
 
+    /** @return array<int, Field|Panel> */
     public function fields(NovaRequest $request): array
     {
         return [
@@ -144,6 +152,7 @@ final class Charge extends Resource
         return $query->where('status', 'active')->where('active_yn', true);
     }
 
+    /** @return list<Filter> */
     public function filters(NovaRequest $request): array
     {
         return [
@@ -156,6 +165,7 @@ final class Charge extends Resource
         ];
     }
 
+    /** @return list<Action> */
     public function actions(NovaRequest $request): array
     {
         return [

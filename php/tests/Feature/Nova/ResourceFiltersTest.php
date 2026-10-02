@@ -110,6 +110,6 @@ final class ResourceFiltersTest extends TestCase
             ->getJson("/nova-api/{$resource}?filters=".urlencode($encoded))
             ->assertOk();
 
-        return collect($response->json('resources'))->pluck('id.value')->sort()->values()->all();
+        return $response->collect('resources')->pluck('id.value')->sort()->values()->all();
     }
 }

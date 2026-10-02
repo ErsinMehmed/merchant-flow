@@ -9,6 +9,7 @@ use App\Containers\AppSection\Authorization\Models\Role as RoleModel;
 use App\Containers\AppSection\Charge\Models\Charge;
 use App\Containers\AppSection\User\Models\User;
 use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 final class ChargeResourceTest extends TestCase
@@ -134,6 +135,7 @@ final class ChargeResourceTest extends TestCase
 
     /**
      * @param  array<string, mixed>  $fields
+     * @return TestResponse<Response>
      */
     private function runAction(string $action, Charge $charge, array $fields = []): TestResponse
     {

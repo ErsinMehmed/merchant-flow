@@ -13,21 +13,28 @@ use Laravel\Nova\Fields\Badge;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\BelongsToMany;
 use Laravel\Nova\Fields\Boolean;
+use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Fields\HasMany;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Fields\Text;
+use Laravel\Nova\Filters\Filter;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use Laravel\Nova\Panel;
 
 /**
  * Merchant accounts.
+ *
+ * @phpstan-extends Resource<AccountModel>
  */
 final class Account extends Resource
 {
+    /** @var class-string<AccountModel> */
     public static $model = AccountModel::class;
 
     public static $title = 'business_name';
 
+    /** @var list<string> */
     public static $search = ['id', 'business_name', 'dba_name', 'mid', 'email'];
 
     public static $group = 'Network';
@@ -52,6 +59,7 @@ final class Account extends Resource
         return 'MID '.$this->resource->mid;
     }
 
+    /** @return array<int, Field|Panel> */
     public function fields(NovaRequest $request): array
     {
         return [
@@ -89,6 +97,7 @@ final class Account extends Resource
         ];
     }
 
+    /** @param  AccountModel  $model */
     public static function fill(NovaRequest $request, $model): array
     {
         if (! $model->exists) {
@@ -106,6 +115,7 @@ final class Account extends Resource
         return $query->where('is_merchant', true);
     }
 
+    /** @return list<Filter> */
     public function filters(NovaRequest $request): array
     {
         return [new AccountStatusFilter, new AccountProcessingFilter, new AccountAgentFilter];

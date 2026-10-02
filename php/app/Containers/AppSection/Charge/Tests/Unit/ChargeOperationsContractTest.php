@@ -92,6 +92,7 @@ final class ChargeOperationsContractTest extends TestCase
             'capture' => $charge->capture(),
             'refund' => $charge->refund($operation['amount'] ?? null),
             'void' => $charge->void(VoidReason::from($operation['reason'])),
+            default => $this->fail("Unknown operation type in the contract: {$operation['type']}"),
         };
 
         return $charge;

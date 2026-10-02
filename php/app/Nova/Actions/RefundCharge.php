@@ -10,6 +10,7 @@ use Illuminate\Support\Collection;
 use Laravel\Nova\Actions\Action;
 use Laravel\Nova\Actions\ActionResponse;
 use Laravel\Nova\Fields\ActionFields;
+use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
@@ -50,6 +51,7 @@ final class RefundCharge extends Action
         ));
     }
 
+    /** @return array<int, Field> */
     public function fields(NovaRequest $request): array
     {
         return [

@@ -11,19 +11,27 @@ use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Validation\Rule;
 use Laravel\Nova\Fields\BelongsTo;
 use Laravel\Nova\Fields\BelongsToMany;
+use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Fields\HasMany;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Number;
 use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Fields\Text;
+use Laravel\Nova\Filters\Filter;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use Laravel\Nova\Panel;
 
+/**
+ * @phpstan-extends Resource<AgentModel>
+ */
 final class Agent extends Resource
 {
+    /** @var class-string<AgentModel> */
     public static $model = AgentModel::class;
 
     public static $title = 'company_dba';
 
+    /** @var list<string> */
     public static $search = ['id', 'email', 'first_name', 'last_name', 'company_dba', 'company_legal_name'];
 
     public static $group = 'Network';
@@ -33,6 +41,7 @@ final class Agent extends Resource
         return $this->resource->first_name.' '.$this->resource->last_name;
     }
 
+    /** @return array<int, Field|Panel> */
     public function fields(NovaRequest $request): array
     {
         return [
@@ -74,6 +83,7 @@ final class Agent extends Resource
         return $query->where('is_agent', true);
     }
 
+    /** @return list<Filter> */
     public function filters(NovaRequest $request): array
     {
         return [new AgentTypeFilter, new AgentParentFilter];

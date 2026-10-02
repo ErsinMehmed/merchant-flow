@@ -7,20 +7,27 @@ use App\Nova\Filters\UserTypeFilter;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Laravel\Nova\Fields\BelongsToMany;
 use Laravel\Nova\Fields\Boolean;
+use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Fields\HasMany;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\MorphToMany;
 use Laravel\Nova\Fields\Password;
 use Laravel\Nova\Fields\Text;
+use Laravel\Nova\Filters\Filter;
 use Laravel\Nova\Http\Requests\NovaRequest;
 use Laravel\Nova\Panel;
 
+/**
+ * @phpstan-extends Resource<UserModel>
+ */
 final class User extends Resource
 {
+    /** @var class-string<UserModel> */
     public static $model = UserModel::class;
 
     public static $title = 'name';
 
+    /** @var list<string> */
     public static $search = ['id', 'name', 'email'];
 
     public static $group = 'Access';
@@ -33,6 +40,7 @@ final class User extends Resource
         return $this->resource->email;
     }
 
+    /** @return array<int, Field|Panel> */
     public function fields(NovaRequest $request): array
     {
         return [
@@ -74,6 +82,7 @@ final class User extends Resource
         ];
     }
 
+    /** @return list<Filter> */
     public function filters(NovaRequest $request): array
     {
         return [new UserTypeFilter];

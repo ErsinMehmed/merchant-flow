@@ -11,6 +11,7 @@ use Illuminate\Validation\Rule;
 use Laravel\Nova\Actions\Action;
 use Laravel\Nova\Actions\ActionResponse;
 use Laravel\Nova\Fields\ActionFields;
+use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Fields\Select;
 use Laravel\Nova\Http\Requests\NovaRequest;
 
@@ -39,6 +40,7 @@ final class VoidCharge extends Action
         return ActionResponse::message('Charge voided.');
     }
 
+    /** @return array<int, Field> */
     public function fields(NovaRequest $request): array
     {
         return [

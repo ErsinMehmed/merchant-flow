@@ -15,10 +15,10 @@ final class UserRolesTest extends TestCase
         $this->assertSame(['merchant'], $user->getRoleNames()->all());
 
         $user->update(['is_merchant' => false, 'is_agent' => true]);
-        $this->assertSame(['agent'], $user->fresh()?->getRoleNames()->all());
+        $this->assertSame(['agent'], $user->refresh()->getRoleNames()->all());
 
         $user->update(['is_agent' => false]);
-        $this->assertSame([], $user->fresh()?->getRoleNames()->all());
+        $this->assertSame([], $user->refresh()->getRoleNames()->all());
     }
 
     public function test_unrelated_changes_do_not_touch_roles(): void
@@ -28,9 +28,9 @@ final class UserRolesTest extends TestCase
 
         $user->update(['name' => 'Renamed']);
 
-        $fresh = $user->fresh();
-        $this->assertSame(['agent'], $fresh?->getRoleNames()->all());
-        $this->assertTrue($fresh?->hasPermission(Permission::RefundCharges));
+        $user->refresh();
+        $this->assertSame(['agent'], $user->getRoleNames()->all());
+        $this->assertTrue($user->hasPermission(Permission::RefundCharges));
     }
 
     /**

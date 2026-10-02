@@ -4,16 +4,23 @@ namespace App\Nova;
 
 use App\Containers\AppSection\Authorization\Models\Permission as PermissionModel;
 use Laravel\Nova\Fields\BelongsToMany;
+use Laravel\Nova\Fields\Field;
 use Laravel\Nova\Fields\ID;
 use Laravel\Nova\Fields\Text;
 use Laravel\Nova\Http\Requests\NovaRequest;
+use Laravel\Nova\Panel;
 
+/**
+ * @phpstan-extends Resource<PermissionModel>
+ */
 final class Permission extends Resource
 {
+    /** @var class-string<PermissionModel> */
     public static $model = PermissionModel::class;
 
     public static $title = 'name';
 
+    /** @var list<string> */
     public static $search = ['name'];
 
     public static $group = 'Access';
@@ -27,6 +34,7 @@ final class Permission extends Resource
         return $this->resource->label();
     }
 
+    /** @return array<int, Field|Panel> */
     public function fields(NovaRequest $request): array
     {
         return [

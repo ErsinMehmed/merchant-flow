@@ -17,11 +17,13 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
+use Laravel\Nova\Dashboard;
 use Laravel\Nova\Http\Controllers\Pages\DashboardController as NovaDashboardController;
 use Laravel\Nova\Menu\MenuItem;
 use Laravel\Nova\Menu\MenuSection;
 use Laravel\Nova\Nova;
 use Laravel\Nova\NovaApplicationServiceProvider;
+use Laravel\Nova\Tool;
 
 final class NovaServiceProvider extends NovaApplicationServiceProvider
 {
@@ -143,6 +145,7 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
         Gate::define('viewNova', static fn (?UserModel $user): bool => $user?->isAdmin() ?? false);
     }
 
+    /** @return list<Dashboard> */
     protected function dashboards(): array
     {
         return [
@@ -150,6 +153,7 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
         ];
     }
 
+    /** @return list<Tool> */
     public function tools(): array
     {
         return [];

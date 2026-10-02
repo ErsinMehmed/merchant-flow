@@ -97,6 +97,6 @@ final class ChargeFiltersTest extends TestCase
             ->getJson('/nova-api/charges?filters='.urlencode($encoded))
             ->assertOk();
 
-        return collect($response->json('resources'))->pluck('id.value')->sort()->values()->all();
+        return $response->collect('resources')->pluck('id.value')->sort()->values()->all();
     }
 }

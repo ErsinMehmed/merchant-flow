@@ -8,3 +8,12 @@ parameters:
         - config
         - tests
     tmpDir: storage/framework/cache/phpstan
+    ignoreErrors:
+        # Apiato merges container and Ship config files into the Laravel
+        # config while the application boots, so env() there is read at the
+        # same time as in config/ and is cached by config:cache too.
+        -
+            identifier: larastan.noEnvCallsOutsideOfConfig
+            paths:
+                - app/Ship/Configs/*
+                - app/Containers/*/*/Configs/*

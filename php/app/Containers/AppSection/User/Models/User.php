@@ -123,6 +123,7 @@ final class User extends ParentUserModel
         return $this->createdAccounts()->exists() || $this->createdCharges()->exists();
     }
 
+    /** @return Attribute<string, string> */
     protected function email(): Attribute
     {
         return Attribute::make(

@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $last_name
  * @property string $email
  * @property string $company_dba
+ * @property string $company_legal_name
  * @property AgentType $type
  * @property ?int $parent_agent_id
  */

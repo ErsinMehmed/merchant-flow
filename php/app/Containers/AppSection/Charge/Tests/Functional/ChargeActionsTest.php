@@ -10,6 +10,7 @@ use App\Containers\AppSection\Charge\Enums\VoidReason;
 use App\Containers\AppSection\Charge\Exceptions\ChargeOperationRejected;
 use App\Containers\AppSection\Charge\Models\Charge;
 use App\Ship\Parents\Tests\TestCase;
+use Closure;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -93,7 +94,8 @@ final class ChargeActionsTest extends TestCase
         $this->assertRejectedByDatabase(fn () => DB::table('charges')->where('id', $charge->id)->update(['void_reason' => 'whim']));
     }
 
-    private function assertRejectedByDatabase(callable $write): void
+    /** @param  Closure(): int  $write */
+    private function assertRejectedByDatabase(Closure $write): void
     {
         try {
             DB::transaction($write);

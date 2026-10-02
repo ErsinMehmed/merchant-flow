@@ -41,7 +41,7 @@ final class InlineFilters extends Card
 
         return array_merge(parent::jsonSerialize(), [
             'resource' => $this->resourceKey,
-            'perPageOptions' => array_values($this->perPageOptions),
+            'perPageOptions' => $this->perPageOptions,
             'filters' => array_map(static fn (Filter $filter): array => [
                 'key' => $filter->key(),
                 'name' => (string) $filter->name(),

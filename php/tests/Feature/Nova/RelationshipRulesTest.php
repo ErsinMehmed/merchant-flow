@@ -11,6 +11,7 @@ use App\Containers\AppSection\Authorization\Models\Role as RoleModel;
 use App\Containers\AppSection\Charge\Models\Charge;
 use App\Containers\AppSection\User\Models\User;
 use Illuminate\Testing\TestResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestCase;
 
 final class RelationshipRulesTest extends TestCase
@@ -169,6 +170,7 @@ final class RelationshipRulesTest extends TestCase
         $this->actingAs($this->admin)->putJson("/nova-api/roles/{$role->id}", ['name' => 'seller'])->assertForbidden();
     }
 
+    /** @return TestResponse<Response> */
     private function attach(string $resource, int $id, string $related, int $relatedId, ?string $relationship = null): TestResponse
     {
         return $this->actingAs($this->admin)->postJson("/nova-api/{$resource}/{$id}/attach/{$related}", [
@@ -177,6 +179,7 @@ final class RelationshipRulesTest extends TestCase
         ]);
     }
 
+    /** @return TestResponse<Response> */
     private function detach(string $resource, int $id, string $related, int $relatedId): TestResponse
     {
         return $this->actingAs($this->admin)->deleteJson("/nova-api/{$related}/detach", [
