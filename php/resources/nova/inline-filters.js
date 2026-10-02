@@ -2,6 +2,9 @@
  * Show Nova's index filters beneath search while retaining its URL format:
  * `<resource>_filter` (base64 JSON) and `<resource>_per_page`.
  * If the expected markup is absent, Nova keeps its normal card placement.
+ *
+ * Changes go through the index component the way Nova's own filter menu
+ * does, so only the table reloads. A full visit is the fallback.
  */
 (() => {
     const { h } = window.Vue;
@@ -10,6 +13,7 @@
 
     /**
      * Decode the URL payload, treating malformed filter state as empty.
+     * Accepts both `{class, value}` entries and Nova's own `{[class]: value}`.
      * @param {string} resource
      * @returns {Record<string, unknown>}
      */
@@ -20,10 +24,11 @@
         }
         try {
             return Object.fromEntries(
-                JSON.parse(atob(raw)).map((filter) => [
-                    filter.class,
-                    filter.value,
-                ]),
+                JSON.parse(atob(raw)).flatMap((filter) =>
+                    'class' in filter && 'value' in filter
+                        ? [[filter.class, filter.value]]
+                        : Object.entries(filter),
+                ),
             );
         } catch {
             return {};
@@ -62,7 +67,26 @@
         });
     }
 
-    function perPageControl(card) {
+    /**
+     * The Nova index component this card is rendered in, if any.
+     * @param {object} instance
+     * @param {string} resource
+     */
+    function findIndex(instance, resource) {
+        for (let owner = instance.$parent; owner; owner = owner.$parent) {
+            if (
+                owner.resourceName === resource &&
+                typeof owner.filterChanged === 'function' &&
+                typeof owner.clearSelectedFilters === 'function'
+            ) {
+                return owner;
+            }
+        }
+
+        return null;
+    }
+
+    function perPageControl(card, onChange) {
         const label = document.createElement('label');
         label.className = 'mf-per-page';
 
@@ -80,11 +104,7 @@
             element.selected = String(option) === current;
             select.append(element);
         }
-        select.addEventListener('change', () =>
-            visit(card.resource, {
-                [`${card.resource}_per_page`]: select.value,
-            }),
-        );
+        select.addEventListener('change', () => onChange(select.value));
 
         label.append(text, select);
         return label;
@@ -105,6 +125,7 @@
             },
 
             mounted() {
+                this.resourceIndex = findIndex(this, this.card.resource);
                 this.index = this.$el.closest('[dusk$="-index-component"]');
                 this.placeUnderSearch();
 
@@ -163,19 +184,57 @@
                     if (!bar || (this.perPage && bar.contains(this.perPage))) {
                         return;
                     }
-                    this.perPage = this.perPage ?? perPageControl(this.card);
+                    this.perPage =
+                        this.perPage ??
+                        perPageControl(this.card, (value) =>
+                            this.changePerPage(value),
+                        );
                     bar.classList.add('mf-pagination');
                     bar.append(this.perPage);
                 },
 
                 change(key, value) {
                     this.values = { ...this.values, [key]: value };
-                    applyFilters(this.card, this.values);
+
+                    const index = this.resourceIndex;
+                    if (!index) {
+                        applyFilters(this.card, this.values);
+                        return;
+                    }
+                    // Same as Nova's filter menu: the index watches the store,
+                    // reloads the table and writes the URL (back to page 1).
+                    index.$store.commit(
+                        `${this.card.resource}/updateFilterState`,
+                        { filterClass: key, value },
+                    );
+                    index.filterChanged();
                 },
 
                 reset() {
                     this.values = {};
-                    applyFilters(this.card, {});
+
+                    if (!this.resourceIndex) {
+                        applyFilters(this.card, {});
+                        return;
+                    }
+                    this.resourceIndex.clearSelectedFilters(
+                        this.resourceIndex.lens || null,
+                    );
+                },
+
+                changePerPage(value) {
+                    const index = this.resourceIndex;
+                    if (!index) {
+                        visit(this.card.resource, {
+                            [`${this.card.resource}_per_page`]: value,
+                        });
+                        return;
+                    }
+                    index.perPage = value;
+                    index.pushAfterUpdatingQueryString({
+                        [index.pageParameter]: 1,
+                        [index.perPageParameter]: value,
+                    });
                 },
 
                 // Native controls with Nova's input classes; form-controls.js
