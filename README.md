@@ -146,6 +146,15 @@ sh scripts/smoke-test.sh                                # http://localhost:8080
 BASE_URL=http://localhost:8090 sh scripts/smoke-test.sh # another port
 ```
 
+The Playwright suite drives Chromium through both portals. Merchant tests cover sessions, account scope, filters, validation, charge creation, refund, capture and void. Nova tests cover administrator access, resources, relationships, inline filters, page size and charge creation. Run it in a separate Compose project so its seeded database and test charges cannot affect the development stack. The browser reaches an internal Nginx service; no extra host port is needed.
+
+```sh
+docker compose --project-name merchant-flow-e2e --profile e2e run --rm --build e2e
+docker compose --project-name merchant-flow-e2e --profile e2e down --volumes
+```
+
+The second command removes only the `merchant-flow-e2e` project's containers and volumes. Failure traces and screenshots are saved under `artifacts/playwright/`.
+
 ### Continuous integration
 
 `.github/workflows/tests.yml` runs on every push and pull request:
@@ -155,7 +164,7 @@ BASE_URL=http://localhost:8090 sh scripts/smoke-test.sh # another port
 | Merchant portal                    | `portal-test`: TypeScript, ESLint, Vitest                               | no                 |
 | Go API                             | gofmt, `go vet`, unit tests                                             | no                 |
 | PHP tests and Go integration tests | `php-test` and `go-test` against a test MySQL                           | yes                |
-| Full stack                         | `docker compose up`, the smoke test, a restart and the smoke test again | yes                |
+| Full stack                         | `docker compose up`, smoke, Playwright browser tests, restart and smoke | yes                |
 
 The PHP image cannot be built without Nova, so the last two jobs run only when the repository has the `NOVA_USERNAME` (Nova account email) and `NOVA_LICENSE_KEY` secrets; otherwise they are skipped with a notice. To add them:
 
@@ -259,7 +268,7 @@ docker compose down --volumes   # stop and delete all local data
 ```
 php/              Laravel 12 + Apiato 13 + Nova 5: schema, admin portal, seeders, PHP tests
 go-api/           Go API: cmd/api (entry point), internal/{auth,access,charge,idempotency,httpapi}
-merchant-portal/  React 19 + AG Grid Community (Vite); tests in tests/
+merchant-portal/  React 19 + AG Grid Community (Vite); unit and browser tests in tests/
 contracts/        Charge rule cases shared by the PHP and Go tests
 docker/           Dockerfiles, Nginx config, test database init
 ```

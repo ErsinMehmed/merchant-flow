@@ -175,6 +175,35 @@ services:
       retries: 3
     restart: unless-stopped
 
+  # Internal-only web entry point for browser tests. A separate Compose project
+  # can run it alongside the developer stack without binding a host port.
+  web-e2e:
+    profiles: [e2e]
+    build:
+      context: .
+      dockerfile: docker/nginx/Dockerfile
+    volumes:
+      - php-public:/usr/share/nginx/php-public:ro
+    depends_on:
+      php:
+        condition: service_healthy
+      go-api:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--quiet',
+          '--tries=1',
+          '--timeout=4',
+          '--spider',
+          'http://127.0.0.1/health',
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   # --- Tests: docker compose --profile test run --rm <service> ---
 
   # Throwaway MySQL on tmpfs; never touches the demo database.
@@ -257,6 +286,22 @@ services:
       dockerfile: docker/nginx/Dockerfile
       target: portal-build
     command: ['npm', 'run', 'check']
+
+  e2e:
+    profiles: [e2e]
+    build:
+      context: .
+      dockerfile: docker/e2e/Dockerfile
+    init: true
+    ipc: host
+    environment:
+      CI: ${CI:-}
+      PLAYWRIGHT_BASE_URL: http://web-e2e
+    volumes:
+      - ./artifacts/playwright:/artifacts/playwright
+    depends_on:
+      web-e2e:
+        condition: service_healthy
 
   # --- Developer tools: docker compose run --rm <service> ---
 
