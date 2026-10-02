@@ -56,6 +56,19 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
             // Always-visible filters above index tables (App\Nova\Cards\InlineFilters).
             Nova::script('inline-filters', resource_path('nova/inline-filters.js'));
             Nova::style('inline-filters', resource_path('nova/inline-filters.css'));
+            // Changes to Nova's own components; component-overrides.js must
+            // load before the scripts that use it.
+            Nova::script('component-overrides', resource_path('nova/component-overrides.js'));
+            // The same inline filters on relationship tables of detail pages.
+            Nova::script('relation-filters', resource_path('nova/relation-filters.js'));
+            // The trash button and the select-all checkbox act directly when
+            // their dropdown would offer only one choice.
+            Nova::script('delete-menu', resource_path('nova/delete-menu.js'));
+            Nova::script('select-all', resource_path('nova/select-all.js'));
+            // No pagination bar when every row fits on one page.
+            Nova::script('pagination', resource_path('nova/pagination.js'));
+            // Vertically centred modals; no chevron on buttons without a dropdown.
+            Nova::style('modals', resource_path('nova/modals.css'));
         });
     }
 

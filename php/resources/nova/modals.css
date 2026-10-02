@@ -1,0 +1,21 @@
+/*
+ * Centres Nova's window-style modals (delete, restore, action confirmations)
+ * vertically instead of pinning them to the top. Auto margins inside a flex
+ * column keep tall modals scrollable from their top edge.
+ */
+.modal.overflow-y-auto {
+    display: flex;
+    flex-direction: column;
+}
+
+.modal.overflow-y-auto > div {
+    width: 100%;
+    margin-top: auto;
+    margin-bottom: auto;
+}
+
+/* Buttons that act directly instead of opening their dropdown (delete-menu.js,
+   select-all.js) drop the dropdown chevron. */
+[data-mf-no-menu] > span > span:last-child:not(:first-child) {
+    display: none;
+}
