@@ -1,0 +1,14 @@
+/* "Back to <resource>" link above detail pages (back-link.js). */
+.mf-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.mf-back-link svg {
+    width: 1rem;
+    height: 1rem;
+}

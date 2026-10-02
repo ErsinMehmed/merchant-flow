@@ -69,6 +69,9 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
             Nova::script('select-all', resource_path('nova/select-all.js'));
             // No pagination bar when every row fits on one page.
             Nova::script('pagination', resource_path('nova/pagination.js'));
+            // A link from every detail page back to its list.
+            Nova::script('back-link', resource_path('nova/back-link.js'));
+            Nova::style('back-link', resource_path('nova/back-link.css'));
             // Vertically centred modals; no chevron on buttons without a dropdown.
             Nova::style('modals', resource_path('nova/modals.css'));
         });

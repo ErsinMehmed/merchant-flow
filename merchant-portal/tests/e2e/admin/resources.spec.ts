@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test';
-import { openResource, signInAdmin } from './helpers';
+import { chooseFilter, openResource, signInAdmin } from './helpers';
 
 test.beforeEach(async ({ page }) => {
   await signInAdmin(page);
@@ -40,6 +40,28 @@ test('roles and permissions are visible in the access section', async ({
   await openResource(page, 'permissions');
   await expect(page.locator('table')).toContainText('charges.refund');
   await expect(page.locator('table')).toContainText('users.manage');
+});
+
+test('detail pages link back to the list as it was left', async ({ page }) => {
+  await openResource(page, 'merchants');
+  await chooseFilter(page, 'Status', 'Suspended');
+  await expect(page).toHaveURL(/merchants_filter=/);
+  const filteredList = page.url();
+
+  await page
+    .locator('table tbody tr')
+    .first()
+    .getByText('Tailspin Toys')
+    .click();
+  await expect(page).toHaveURL(/\/admin\/resources\/merchants\/\d+$/);
+  await page.getByRole('link', { name: 'Back to Merchants' }).click();
+  await expect(page).toHaveURL(filteredList);
+  await expect(page.locator('table tbody tr')).toHaveCount(1);
+
+  // Opened directly, the link goes to the unfiltered list.
+  await page.goto('/admin/resources/roles/2');
+  await page.getByRole('link', { name: 'Back to Roles' }).click();
+  await expect(page).toHaveURL(/\/admin\/resources\/roles$/);
 });
 
 test('admin creates a captured charge through Nova', async ({ page }) => {
