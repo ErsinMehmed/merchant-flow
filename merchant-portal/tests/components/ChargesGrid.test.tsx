@@ -1,8 +1,8 @@
 import { act, render, waitFor } from '@testing-library/react';
 import type { IDatasource, IGetRowsParams } from 'ag-grid-community';
-import { api } from '../api/client';
-import type { Charge } from '../api/types';
-import { ChargesGrid } from './ChargesGrid';
+import { api } from '../../src/api/client';
+import type { Charge } from '../../src/api/types';
+import { ChargesGrid } from '../../src/components/ChargesGrid';
 
 const grid = vi.hoisted(() => ({ datasource: null as IDatasource | null }));
 
@@ -13,7 +13,7 @@ vi.mock('ag-grid-react', () => ({
   },
 }));
 
-vi.mock('../lib/useMediaQuery', () => ({ useMediaQuery: () => false }));
+vi.mock('../../src/lib/useMediaQuery', () => ({ useMediaQuery: () => false }));
 
 it('ignores a response from the previous filters', async () => {
   let resolveOld!: (value: Awaited<ReturnType<typeof api.charges>>) => void;

@@ -1,4 +1,4 @@
-import { formatMoney, parseAmount, toInputAmount } from './money';
+import { formatMoney, parseAmount, toInputAmount } from '../../src/lib/money';
 
 describe('parseAmount', () => {
   it.each([

@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ApiError, api } from '../api/client';
-import type { Charge } from '../api/types';
-import { RefundForm } from './ChargeActionDialogs';
+import { ApiError, api } from '../../src/api/client';
+import type { Charge } from '../../src/api/types';
+import { RefundForm } from '../../src/components/ChargeActionDialogs';
 
 const charge = {
   id: 4,

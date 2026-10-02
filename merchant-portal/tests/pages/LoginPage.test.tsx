@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ApiError, api } from '../api/client';
-import { App } from '../App';
-import { SessionProvider } from '../session/SessionContext';
+import { ApiError, api } from '../../src/api/client';
+import { App } from '../../src/App';
+import { SessionProvider } from '../../src/session/SessionContext';
 
 function renderApp() {
   return render(

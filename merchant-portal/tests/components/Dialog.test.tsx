@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { Dialog } from './Dialog';
+import { Dialog } from '../../src/components/Dialog';
 
 it('labels each dialog with its own title when both are mounted', () => {
   const { container } = render(

@@ -1,4 +1,4 @@
-import { ApiError, api, onUnauthorized } from './client';
+import { ApiError, api, onUnauthorized } from '../../src/api/client';
 
 function respond(status: number, body?: unknown) {
   return vi.spyOn(globalThis, 'fetch').mockResolvedValue(

@@ -12,9 +12,10 @@ export default defineConfig({
     chunkSizeWarningLimit: 1500,
   },
   test: {
+    include: ['tests/**/*.test.{ts,tsx}'],
     environment: 'jsdom',
     globals: true,
-    setupFiles: ['./src/test/setup.ts'],
+    setupFiles: ['./tests/setup.ts'],
     css: false,
   },
 });

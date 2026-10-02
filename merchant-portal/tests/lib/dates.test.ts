@@ -4,7 +4,7 @@ import {
   isWithin,
   parseIsoDate,
   toIsoDate,
-} from './dates';
+} from '../../src/lib/dates';
 
 describe('dates', () => {
   it('round-trips ISO dates and rejects invalid ones', () => {

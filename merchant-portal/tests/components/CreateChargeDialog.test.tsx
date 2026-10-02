@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { ApiError, api } from '../api/client';
-import type { Account, Charge } from '../api/types';
-import { CreateChargeDialog } from './CreateChargeDialog';
+import { ApiError, api } from '../../src/api/client';
+import type { Account, Charge } from '../../src/api/types';
+import { CreateChargeDialog } from '../../src/components/CreateChargeDialog';
 
 const accounts: Account[] = [
   {

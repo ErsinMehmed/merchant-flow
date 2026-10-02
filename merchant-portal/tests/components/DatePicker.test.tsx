@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { DatePicker } from './DatePicker';
+import { DatePicker } from '../../src/components/DatePicker';
 
 function renderPicker(props: { value?: string; min?: string } = {}) {
   const onChange = vi.fn();

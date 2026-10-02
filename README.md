@@ -259,7 +259,7 @@ docker compose down --volumes   # stop and delete all local data
 ```
 php/              Laravel 12 + Apiato 13 + Nova 5: schema, admin portal, seeders, PHP tests
 go-api/           Go API: cmd/api (entry point), internal/{auth,access,charge,idempotency,httpapi}
-merchant-portal/  React 19 + AG Grid Community (Vite)
+merchant-portal/  React 19 + AG Grid Community (Vite); tests in tests/
 contracts/        Charge rule cases shared by the PHP and Go tests
 docker/           Dockerfiles, Nginx config, test database init
 ```
