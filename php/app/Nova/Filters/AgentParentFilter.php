@@ -29,7 +29,12 @@ final class AgentParentFilter extends Filter
     /** @return array<string, int|string> */
     public function options(NovaRequest $request): array
     {
-        return ['Top-level agents' => self::TOP_LEVEL]
-            + Agent::query()->whereHas('childAgents')->orderBy('company_dba')->pluck('id', 'company_dba')->all();
+        $options = ['Top-level agents' => self::TOP_LEVEL];
+
+        foreach (Agent::query()->whereHas('childAgents')->orderBy('company_dba')->orderBy('id')->get(['id', 'company_dba']) as $agent) {
+            $options["{$agent->company_dba} (#{$agent->id})"] = $agent->id;
+        }
+
+        return $options;
     }
 }

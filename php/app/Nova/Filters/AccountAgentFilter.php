@@ -31,7 +31,12 @@ final class AccountAgentFilter extends Filter
     /** @return array<string, int|string> */
     public function options(NovaRequest $request): array
     {
-        return ['No agent' => self::NONE]
-            + Agent::query()->orderBy('company_dba')->pluck('id', 'company_dba')->all();
+        $options = ['No agent' => self::NONE];
+
+        foreach (Agent::query()->orderBy('company_dba')->orderBy('id')->get(['id', 'company_dba']) as $agent) {
+            $options["{$agent->company_dba} (#{$agent->id})"] = $agent->id;
+        }
+
+        return $options;
     }
 }

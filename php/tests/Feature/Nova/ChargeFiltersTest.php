@@ -70,7 +70,10 @@ final class ChargeFiltersTest extends TestCase
             ChargeCreatedToFilter::class,
         ], array_column($cards[0]['filters'], 'key'));
         $this->assertContains(['label' => 'Authorized', 'value' => 'authorized'], $cards[0]['filters'][0]['options']);
-        $this->assertContains(['label' => $charge->account->business_name, 'value' => (string) $charge->account_id], $cards[0]['filters'][1]['options']);
+        $this->assertContains([
+            'label' => "{$charge->account->business_name} (MID {$charge->account->mid})",
+            'value' => (string) $charge->account_id,
+        ], $cards[0]['filters'][1]['options']);
         $this->assertSame('date', $cards[0]['filters'][4]['type']);
     }
 

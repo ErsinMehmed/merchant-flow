@@ -22,6 +22,12 @@ final class ChargeMerchantFilter extends Filter
     /** @return array<string, int> */
     public function options(NovaRequest $request): array
     {
-        return Account::query()->orderBy('business_name')->pluck('id', 'business_name')->all();
+        $options = [];
+
+        foreach (Account::query()->orderBy('business_name')->orderBy('id')->get(['id', 'business_name', 'mid']) as $account) {
+            $options["{$account->business_name} (MID {$account->mid})"] = $account->id;
+        }
+
+        return $options;
     }
 }

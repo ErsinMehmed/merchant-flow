@@ -11,7 +11,9 @@ use App\Nova\Filters\AccountProcessingFilter;
 use App\Nova\Filters\AccountStatusFilter;
 use App\Nova\Filters\AgentParentFilter;
 use App\Nova\Filters\AgentTypeFilter;
+use App\Nova\Filters\ChargeMerchantFilter;
 use App\Nova\Filters\UserTypeFilter;
+use Laravel\Nova\Http\Requests\NovaRequest;
 use Tests\TestCase;
 
 final class ResourceFiltersTest extends TestCase
@@ -45,6 +47,27 @@ final class ResourceFiltersTest extends TestCase
         $this->assertSame([$child->id], $this->ids('agents', [AgentTypeFilter::class => 'referral']));
         $this->assertSame([$child->id], $this->ids('agents', [AgentParentFilter::class => (string) $parent->id]));
         $this->assertSame([$parent->id], $this->ids('agents', [AgentParentFilter::class => 'none']));
+    }
+
+    public function test_filter_options_keep_records_with_duplicate_display_names(): void
+    {
+        $firstAccount = Account::factory()->create(['business_name' => 'Shared name']);
+        $secondAccount = Account::factory()->create(['business_name' => 'Shared name']);
+        $firstAgent = Agent::factory()->create(['company_dba' => 'Shared agent']);
+        $secondAgent = Agent::factory()->create(['company_dba' => 'Shared agent']);
+        Agent::factory()->create(['parent_agent_id' => $firstAgent->id]);
+        Agent::factory()->create(['parent_agent_id' => $secondAgent->id]);
+        $request = NovaRequest::create('/nova-api');
+
+        $this->assertSame(
+            [$firstAccount->id, $secondAccount->id],
+            array_values((new ChargeMerchantFilter)->options($request)),
+        );
+        foreach ([new AccountAgentFilter, new AgentParentFilter] as $filter) {
+            $options = $filter->options($request);
+            $this->assertSame($firstAgent->id, $options["Shared agent (#{$firstAgent->id})"]);
+            $this->assertSame($secondAgent->id, $options["Shared agent (#{$secondAgent->id})"]);
+        }
     }
 
     public function test_user_type_filter(): void

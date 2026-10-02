@@ -44,7 +44,8 @@ RUN --mount=type=secret,id=composer_auth,target=/tmp/composer/auth.json \
     && composer install --no-interaction --no-progress --prefer-dist --no-scripts --no-autoloader
 COPY php/ /app/
 COPY contracts/ /contracts/
-RUN composer dump-autoload --optimize --no-scripts \
+RUN touch /app/.env \
+    && composer dump-autoload --optimize --no-scripts \
     && php artisan package:discover --ansi \
     && php artisan vendor:publish --tag=laravel-assets --force
 ENV CONTRACTS_PATH=/contracts

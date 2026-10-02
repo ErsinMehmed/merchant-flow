@@ -152,9 +152,13 @@ export function ChargesGrid({
   );
 
   // A new datasource (new filters) makes the grid start again from page one.
-  const datasource = useMemo<IDatasource>(
-    () => ({
+  const datasource = useMemo<IDatasource>(() => {
+    const pending = new Set<AbortController>();
+
+    return {
       getRows: (params) => {
+        const controller = new AbortController();
+        pending.add(controller);
         const sort = params.sortModel[0];
         const query: ChargeQuery = {
           ...filters,
@@ -165,8 +169,9 @@ export function ChargesGrid({
             : undefined,
         };
         api
-          .charges(query)
+          .charges(query, controller.signal)
           .then(({ charges, meta }) => {
+            if (controller.signal.aborted) return;
             params.successCallback(charges, meta.total);
             gridApi.current?.setGridOption(
               'activeOverlay',
@@ -175,17 +180,24 @@ export function ChargesGrid({
             callbacks.current.onLoaded(meta.total);
           })
           .catch((error: unknown) => {
+            if (controller.signal.aborted) return;
             params.failCallback();
             callbacks.current.onError(
               error instanceof Error
                 ? error.message
                 : 'Could not load charges.',
             );
-          });
+          })
+          .finally(() => pending.delete(controller));
       },
-    }),
-    [filters],
-  );
+      destroy: () => {
+        pending.forEach((controller) => controller.abort());
+        pending.clear();
+      },
+    };
+  }, [filters]);
+
+  useEffect(() => () => datasource.destroy?.(), [datasource]);
 
   useEffect(() => {
     if (refreshToken > 0) gridApi.current?.refreshInfiniteCache();
