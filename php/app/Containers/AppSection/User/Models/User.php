@@ -10,6 +10,7 @@ use App\Containers\AppSection\Authorization\Enums\Role;
 use App\Containers\AppSection\Charge\Models\Charge;
 use App\Containers\AppSection\User\Observers\UserObserver;
 use App\Ship\Parents\Models\UserModel as ParentUserModel;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Attributes\ObservedBy;
 use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -22,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $is_admin
  * @property bool $is_agent
  * @property bool $is_merchant
+ * @property CarbonImmutable|null $avatar_updated_at
  */
 #[ObservedBy(UserObserver::class)]
 final class User extends ParentUserModel
@@ -53,6 +55,7 @@ final class User extends ParentUserModel
             'is_admin' => 'boolean',
             'is_agent' => 'boolean',
             'is_merchant' => 'boolean',
+            'avatar_updated_at' => 'immutable_datetime',
         ];
     }
 

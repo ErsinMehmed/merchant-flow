@@ -9,6 +9,7 @@ use App\Nova\Agent;
 use App\Nova\Charge;
 use App\Nova\Dashboards\Main;
 use App\Nova\Http\DashboardController;
+use App\Nova\Http\UserAvatarController;
 use App\Nova\Permission;
 use App\Nova\Role;
 use App\Nova\User;
@@ -16,10 +17,12 @@ use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Laravel\Fortify\Features;
 use Laravel\Nova\Dashboard;
 use Laravel\Nova\Http\Controllers\Pages\DashboardController as NovaDashboardController;
+use Laravel\Nova\Menu\Menu;
 use Laravel\Nova\Menu\MenuItem;
 use Laravel\Nova\Menu\MenuSection;
 use Laravel\Nova\Nova;
@@ -52,6 +55,11 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
         Nova::withBreadcrumbs();
         Nova::footer(static fn (): string => 'Merchant Flow admin · demo data only');
         Nova::mainMenu(static fn (): array => self::menu());
+        // The user's own record, with the profile photo. Nova adds
+        // "User Security" (password change) and "Logout" below it.
+        Nova::userMenu(static fn (Request $request, Menu $menu): Menu => $menu->prepend(
+            MenuItem::make('Profile', '/resources/users/'.$request->user()?->getKey()),
+        ));
 
         Nova::serving(static function (): void {
             // Replaces the browser's native logout confirm() with a Nova-styled dialog.
@@ -133,6 +141,12 @@ final class NovaServiceProvider extends NovaApplicationServiceProvider
             ->withoutPasswordResetRoutes()
             ->withoutEmailVerificationRoutes()
             ->register();
+
+        // Profile photos (App\Nova\User), behind Nova's authentication and gate.
+        Route::middleware(config('nova.api_middleware'))
+            ->get(Nova::path().'/user-avatars/{user}', UserAvatarController::class)
+            ->whereNumber('user')
+            ->name('nova.user-avatar');
     }
 
     /**
