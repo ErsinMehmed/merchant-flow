@@ -11,17 +11,9 @@ import { ChargesGrid, type ChargeFilters } from '../components/ChargesGrid';
 import { CreateChargeDialog } from '../components/CreateChargeDialog';
 import { Dialog } from '../components/Dialog';
 import { EMPTY_FILTERS, FiltersBar } from '../components/FiltersBar';
-import { ToastProvider, useToast } from '../components/Toasts';
+import { useToast } from '../components/Toasts';
 import { formatMoney } from '../lib/money';
 import { useSession } from '../session/SessionContext';
-
-export function ChargesPage({ user }: { user: User }) {
-  return (
-    <ToastProvider>
-      <Portal user={user} />
-    </ToastProvider>
-  );
-}
 
 type Panel =
   | { kind: 'details'; charge: Charge }
@@ -35,8 +27,8 @@ const DIALOG_TITLES: Record<ChargeAction, string> = {
   void: 'Void charge',
 };
 
-function Portal({ user }: { user: User }) {
-  const { signOut, can } = useSession();
+export function ChargesPage({ user }: { user: User }) {
+  const { can } = useSession();
   const notify = useToast();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [filters, setFilters] = useState<ChargeFilters>(EMPTY_FILTERS);
@@ -74,83 +66,61 @@ function Portal({ user }: { user: User }) {
       : `${accounts.length} merchant accounts`;
 
   return (
-    <div className="app">
-      <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          Merchant Flow
+    <>
+      <div className="page-head">
+        <div>
+          <h1>Charges</h1>
+          <p className="muted">
+            {scope}
+            {total !== null &&
+              ` · ${total.toLocaleString()} ${total === 1 ? 'charge' : 'charges'}`}
+          </p>
         </div>
-        <div className="topbar-user">
-          <span className="user-name">{user.name}</span>
-          <span className="user-roles">
-            {user.roles.join(', ') || 'no role'}
-          </span>
+        {canCreate && (
           <button
             type="button"
-            className="button button-quiet"
-            onClick={() => void signOut()}
+            className="button button-primary"
+            onClick={() => setPanel({ kind: 'create' })}
           >
-            Sign out
+            New charge
           </button>
-        </div>
-      </header>
-
-      <main className="content">
-        <div className="page-head">
-          <div>
-            <h1>Charges</h1>
-            <p className="muted">
-              {scope}
-              {total !== null &&
-                ` · ${total.toLocaleString()} ${total === 1 ? 'charge' : 'charges'}`}
-            </p>
-          </div>
-          {canCreate && (
-            <button
-              type="button"
-              className="button button-primary"
-              onClick={() => setPanel({ kind: 'create' })}
-            >
-              New charge
-            </button>
-          )}
-        </div>
-
-        {!canView ? (
-          <p className="notice">
-            Your account does not have permission to view charges. Ask an
-            administrator for access.
-          </p>
-        ) : (
-          <>
-            <FiltersBar
-              accounts={accounts}
-              value={filters}
-              onChange={setFilters}
-            />
-            {loadError && (
-              <div className="notice notice-error" role="alert">
-                {loadError}{' '}
-                <button
-                  type="button"
-                  className="link-button"
-                  onClick={() => setRefreshToken((n) => n + 1)}
-                >
-                  Retry
-                </button>
-              </div>
-            )}
-            <ChargesGrid
-              filters={filters}
-              showMerchant={isAdmin || accounts.length > 1}
-              refreshToken={refreshToken}
-              onSelect={(charge) => setPanel({ kind: 'details', charge })}
-              onLoaded={onLoaded}
-              onError={setLoadError}
-            />
-          </>
         )}
-      </main>
+      </div>
+
+      {!canView ? (
+        <p className="notice">
+          Your account does not have permission to view charges. Ask an
+          administrator for access.
+        </p>
+      ) : (
+        <>
+          <FiltersBar
+            accounts={accounts}
+            value={filters}
+            onChange={setFilters}
+          />
+          {loadError && (
+            <div className="notice notice-error" role="alert">
+              {loadError}{' '}
+              <button
+                type="button"
+                className="link-button"
+                onClick={() => setRefreshToken((n) => n + 1)}
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          <ChargesGrid
+            filters={filters}
+            showMerchant={isAdmin || accounts.length > 1}
+            refreshToken={refreshToken}
+            onSelect={(charge) => setPanel({ kind: 'details', charge })}
+            onLoaded={onLoaded}
+            onError={setLoadError}
+          />
+        </>
+      )}
 
       <Dialog
         title="New charge"
@@ -230,6 +200,6 @@ function Portal({ user }: { user: User }) {
           )}
         </Dialog>
       )}
-    </div>
+    </>
   );
 }

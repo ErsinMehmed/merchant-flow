@@ -57,6 +57,20 @@ describe('api client', () => {
     );
   });
 
+  it('uploads a profile photo as the raw body with its own type', async () => {
+    const fetchMock = respond(200, { data: { id: 7, avatar_url: '/x' } });
+    const photo = new File(['jpeg'], 'me.jpg', { type: 'image/jpeg' });
+
+    await api.uploadAvatar(photo);
+
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('/api/v1/me/avatar');
+    expect(init).toMatchObject({ method: 'PUT', body: photo });
+    expect((init?.headers as Record<string, string>)['Content-Type']).toBe(
+      'image/jpeg',
+    );
+  });
+
   it('builds the list query from the filters', async () => {
     const fetchMock = respond(200, {
       data: [],

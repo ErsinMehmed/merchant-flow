@@ -45,6 +45,14 @@ export interface User {
   email: string;
   roles: string[];
   permissions: string[];
+  /** Null when the user has no profile photo. */
+  avatar_url: string | null;
+}
+
+export interface PasswordChange {
+  current_password: string;
+  password: string;
+  password_confirmation: string;
 }
 
 export interface PageMeta {

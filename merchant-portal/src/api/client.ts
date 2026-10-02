@@ -4,6 +4,7 @@ import type {
   ChargeQuery,
   NewCharge,
   PageMeta,
+  PasswordChange,
   User,
   VoidReason,
 } from './types';
@@ -38,7 +39,8 @@ export function onUnauthorized(listener: Listener): () => void {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE';
+  /** Sent as JSON, except a Blob, which is sent as is with its own type. */
   body?: unknown;
   idempotencyKey?: string;
   signal?: AbortSignal;
@@ -52,8 +54,10 @@ async function request<T>(
   path: string,
   { method = 'GET', body, idempotencyKey, signal }: RequestOptions = {},
 ): Promise<T> {
+  const raw = body instanceof Blob;
   const headers: Record<string, string> = { Accept: 'application/json' };
-  if (body !== undefined) headers['Content-Type'] = 'application/json';
+  if (body !== undefined)
+    headers['Content-Type'] = raw ? body.type : 'application/json';
   if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
 
   let response: Response;
@@ -61,7 +65,7 @@ async function request<T>(
     response = await fetch(`/api/v1${path}`, {
       method,
       headers,
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined || raw ? body : JSON.stringify(body),
       credentials: 'same-origin',
       signal,
     });
@@ -121,6 +125,20 @@ export const api = {
 
   async me(): Promise<User> {
     return (await request<Data<User>>('/me')).data;
+  },
+
+  changePassword(change: PasswordChange): Promise<void> {
+    return request('/me/password', { method: 'POST', body: change });
+  },
+
+  async uploadAvatar(photo: Blob): Promise<User> {
+    return (
+      await request<Data<User>>('/me/avatar', { method: 'PUT', body: photo })
+    ).data;
+  },
+
+  async removeAvatar(): Promise<User> {
+    return (await request<Data<User>>('/me/avatar', { method: 'DELETE' })).data;
   },
 
   async accounts(): Promise<Account[]> {

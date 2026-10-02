@@ -19,6 +19,8 @@ interface SessionValue {
   state: SessionState;
   signIn(email: string, password: string): Promise<void>;
   signOut(): Promise<void>;
+  /** Replaces the signed-in user, e.g. after a profile change. */
+  updateUser(user: User): void;
   can(permission: string): boolean;
 }
 
@@ -74,16 +76,23 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateUser = useCallback((user: User) => {
+    setState((current) =>
+      current.status === 'signed-in' ? { status: 'signed-in', user } : current,
+    );
+  }, []);
+
   const value = useMemo<SessionValue>(
     () => ({
       state,
       signIn,
       signOut,
+      updateUser,
       can: (permission) =>
         state.status === 'signed-in' &&
         state.user.permissions.includes(permission),
     }),
-    [state, signIn, signOut],
+    [state, signIn, signOut, updateUser],
   );
 
   return (
