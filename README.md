@@ -40,6 +40,8 @@ All data is fictional. Payments only record rows in `charges`; nothing is sent t
 
 That is the whole setup. There is no manual migration, seeding or asset step.
 
+While editing code, start the stack with `docker compose up --build --watch` instead. PHP changes are copied into the running container and show up on the next request; changes to the Go API, the portal or `composer.lock` rebuild the affected image.
+
 ## What happens on startup
 
 | Step | Service  | What it does                                                                                                                                 |

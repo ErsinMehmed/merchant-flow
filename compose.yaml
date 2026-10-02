@@ -86,11 +86,32 @@ services:
       timeout: 5s
       retries: 3
     restart: unless-stopped
+    # `docker compose up --watch` copies PHP edits into the running container
+    # (opcache revalidates timestamps); a dependency change rebuilds the image.
+    develop:
+      watch:
+        - action: sync
+          path: ./php
+          target: /app
+          ignore:
+            - vendor/
+            - storage/
+            - bootstrap/cache/
+            - public/vendor/
+            - .env
+            - composer.json
+            - composer.lock
+        - action: rebuild
+          path: ./php/composer.lock
 
   go-api:
     build:
       context: ./go-api
       dockerfile: Dockerfile
+    develop:
+      watch:
+        - action: rebuild
+          path: ./go-api
     environment:
       <<: *database-environment
       SESSION_TTL: 8h
@@ -123,6 +144,15 @@ services:
       - '127.0.0.1:${APP_PORT:-8080}:80'
     volumes:
       - php-public:/usr/share/nginx/php-public:ro
+    # The portal is compiled into this image, so portal edits rebuild it.
+    develop:
+      watch:
+        - action: rebuild
+          path: ./merchant-portal
+          ignore:
+            - node_modules/
+            - dist/
+            - coverage/
     depends_on:
       php:
         condition: service_healthy
