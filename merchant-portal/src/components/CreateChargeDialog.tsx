@@ -1,8 +1,8 @@
 import { useState, type FormEvent } from 'react';
-import { api, newIdempotencyKey } from '../api/client';
+import { api } from '../api/client';
 import type { Account, Charge } from '../api/types';
 import { CURRENCIES, parseAmount } from '../lib/money';
-import { useSubmit } from '../lib/useSubmit';
+import { useRequestKey, useSubmit } from '../lib/useSubmit';
 import { Select } from './Select';
 
 interface Props {
@@ -25,32 +25,30 @@ export function CreateChargeDialog({ accounts, onCreated, onCancel }: Props) {
   const [email, setEmail] = useState('');
   const [capture, setCapture] = useState(true);
   const [touched, setTouched] = useState(false);
-  // Generated once per dialog: retrying after a network error cannot create
-  // a second charge.
-  const [idempotencyKey] = useState(newIdempotencyKey);
+  const requestKey = useRequestKey();
 
   const minorAmount = parseAmount(amount);
+  const normalizedEmail = email.trim();
   const localErrors: Record<string, string> = {};
-  if (!accountId) localErrors.account_id = 'Choose a merchant account.';
+  if (!usable.some((account) => String(account.id) === accountId))
+    localErrors.account_id = 'Choose a merchant account that accepts charges.';
   if (minorAmount === null)
     localErrors.amount = 'Enter an amount between 0.01 and 999,999.99.';
-  if (!EMAIL_PATTERN.test(email.trim()))
+  if (new TextEncoder().encode(normalizedEmail).length > 254)
+    localErrors.customer_email = 'Email must be at most 254 characters.';
+  else if (!EMAIL_PATTERN.test(normalizedEmail))
     localErrors.customer_email = 'Enter a valid email address.';
 
-  const { pending, error, fieldErrors, submit } = useSubmit(
-    () =>
-      api.createCharge(
-        {
-          account_id: Number(accountId),
-          amount: minorAmount ?? 0,
-          currency,
-          customer_email: email.trim(),
-          capture,
-        },
-        idempotencyKey,
-      ),
-    onCreated,
-  );
+  const { pending, error, fieldErrors, submit } = useSubmit(() => {
+    const body = {
+      account_id: Number(accountId),
+      amount: minorAmount ?? 0,
+      currency,
+      customer_email: normalizedEmail,
+      capture,
+    };
+    return api.createCharge(body, requestKey(body));
+  }, onCreated);
 
   const errors = touched ? { ...localErrors, ...fieldErrors } : fieldErrors;
 

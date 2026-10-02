@@ -31,15 +31,26 @@ func readBody(w http.ResponseWriter, r *http.Request) ([]byte, bool) {
 // An empty body is allowed and leaves dst unchanged, for endpoints whose
 // fields are all optional. It writes the error response itself.
 func decode(w http.ResponseWriter, body []byte, dst any) bool {
-	if len(bytes.TrimSpace(body)) == 0 {
+	trimmed := bytes.TrimSpace(body)
+	if len(trimmed) == 0 {
 		return true
+	}
+	if trimmed[0] != '{' {
+		writeError(w, http.StatusBadRequest, "invalid_json", "The request body must be a JSON object.")
+		return false
 	}
 
 	dec := json.NewDecoder(bytes.NewReader(body))
 	dec.DisallowUnknownFields()
 	err := dec.Decode(dst)
-	if err == nil && dec.More() {
-		err = errors.New("the body must contain a single JSON object")
+	if err == nil {
+		var extra any
+		if nextErr := dec.Decode(&extra); nextErr != io.EOF {
+			err = nextErr
+			if err == nil {
+				err = errors.New("the body must contain a single JSON object")
+			}
+		}
 	}
 	if err == nil {
 		return true

@@ -130,6 +130,11 @@ func ParseListParams(q url.Values) (ListParams, map[string]string) {
 	if p.CreatedFrom != nil && p.CreatedTo != nil && p.CreatedTo.Before(*p.CreatedFrom) {
 		errs["created_to"] = "must not be before created_from"
 	}
+	for _, field := range []string{"page", "page_size", "sort", "status", "account_id", "currency", "q", "disputed", "created_from", "created_to"} {
+		if len(q[field]) > 1 {
+			errs[field] = "must be specified only once"
+		}
+	}
 
 	return p, errs
 }

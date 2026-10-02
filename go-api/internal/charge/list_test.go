@@ -80,6 +80,17 @@ func TestParseListParamsRejectsInvalidValues(t *testing.T) {
 	}
 }
 
+func TestParseListParamsRejectsDuplicateKnownParameters(t *testing.T) {
+	for _, field := range []string{"page", "page_size", "sort", "status", "account_id", "currency", "q", "disputed", "created_from", "created_to"} {
+		t.Run(field, func(t *testing.T) {
+			_, errs := ParseListParams(url.Values{field: {"", "1"}})
+			if errs[field] != "must be specified only once" {
+				t.Fatalf("expected duplicate %s to be rejected, got %v", field, errs)
+			}
+		})
+	}
+}
+
 func TestSortFieldsCannotInjectSQL(t *testing.T) {
 	_, errs := ParseListParams(url.Values{"sort": {"created_at; DROP TABLE charges"}})
 	if errs["sort"] == "" {

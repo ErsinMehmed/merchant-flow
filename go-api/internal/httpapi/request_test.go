@@ -67,6 +67,9 @@ func TestDecodeIsStrict(t *testing.T) {
 		`{"amount": 1e30}`:            http.StatusUnprocessableEntity,
 		`{"amount": 100, "x": 1}`:     http.StatusBadRequest,
 		`{"amount": 100}{"amount":1}`: http.StatusBadRequest,
+		`{"amount": 100} null`:        http.StatusBadRequest,
+		`null`:                        http.StatusBadRequest,
+		`true`:                        http.StatusBadRequest,
 		`[1]`:                         http.StatusBadRequest,
 		`{"amount":`:                  http.StatusBadRequest,
 	}

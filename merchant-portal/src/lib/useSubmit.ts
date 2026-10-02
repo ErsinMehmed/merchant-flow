@@ -1,10 +1,25 @@
 import { useCallback, useRef, useState } from 'react';
-import { ApiError } from '../api/client';
+import { ApiError, newIdempotencyKey } from '../api/client';
 
 interface SubmitState {
   pending: boolean;
   error: string | null;
   fieldErrors: Record<string, string>;
+}
+
+/** Reuse a key for an identical retry, including after editing and reverting. */
+export function useRequestKey() {
+  const keys = useRef(new Map<string, string>());
+
+  return (body: unknown): string => {
+    const serialized = JSON.stringify(body);
+    let key = keys.current.get(serialized);
+    if (!key) {
+      key = newIdempotencyKey();
+      keys.current.set(serialized, key);
+    }
+    return key;
+  };
 }
 
 /**

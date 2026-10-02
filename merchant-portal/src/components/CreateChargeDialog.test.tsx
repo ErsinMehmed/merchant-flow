@@ -116,6 +116,56 @@ describe('CreateChargeDialog', () => {
     expect(create.mock.calls[0]![1]).toBe(create.mock.calls[1]![1]);
   });
 
+  it('uses a new idempotency key after the user changes the charge', async () => {
+    const create = vi
+      .spyOn(api, 'createCharge')
+      .mockRejectedValue(new ApiError(0, 'network_error', 'Try again.'));
+    render(
+      <CreateChargeDialog
+        accounts={accounts}
+        onCreated={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    const amount = screen.getByLabelText('Amount');
+    await userEvent.type(amount, '5');
+    await userEvent.type(
+      screen.getByLabelText('Customer email'),
+      'jane@example.com',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Charge' }));
+    await screen.findByRole('alert');
+
+    await userEvent.clear(amount);
+    await userEvent.type(amount, '6');
+    await userEvent.click(screen.getByRole('button', { name: 'Charge' }));
+
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(create.mock.calls[0]![1]).not.toBe(create.mock.calls[1]![1]);
+  });
+
+  it('checks the server email length before submitting', async () => {
+    const create = vi.spyOn(api, 'createCharge');
+    render(
+      <CreateChargeDialog
+        accounts={accounts}
+        onCreated={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    await userEvent.type(screen.getByLabelText('Amount'), '5');
+    await userEvent.type(
+      screen.getByLabelText('Customer email'),
+      `${'a'.repeat(250)}@example.com`,
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Charge' }));
+
+    expect(create).not.toHaveBeenCalled();
+    expect(screen.getByText(/at most 254 characters/)).toBeInTheDocument();
+  });
+
   it('explains when no account can take charges', () => {
     render(
       <CreateChargeDialog

@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { api, newIdempotencyKey } from '../api/client';
 import type { Charge, VoidReason } from '../api/types';
 import { formatMoney, parseAmount, toInputAmount } from '../lib/money';
-import { useSubmit } from '../lib/useSubmit';
+import { useRequestKey, useSubmit } from '../lib/useSubmit';
 import { Select } from './Select';
 
 interface ActionProps {
@@ -13,13 +13,18 @@ interface ActionProps {
 
 export function RefundForm({ charge, onDone, onCancel }: ActionProps) {
   const [amount, setAmount] = useState(toInputAmount(charge.amount_refundable));
-  const [idempotencyKey] = useState(newIdempotencyKey);
+  const requestKey = useRequestKey();
   const minor = parseAmount(amount);
   const tooMuch = minor !== null && minor > charge.amount_refundable;
   const invalid = minor === null || tooMuch;
 
   const { pending, error, submit } = useSubmit(
-    () => api.refund(charge.id, minor ?? 0, idempotencyKey),
+    () =>
+      api.refund(
+        charge.id,
+        minor ?? 0,
+        requestKey({ chargeId: charge.id, amount: minor }),
+      ),
     onDone,
   );
 
@@ -105,9 +110,10 @@ const VOID_REASONS: { value: VoidReason; label: string }[] = [
 
 export function VoidForm({ charge, onDone, onCancel }: ActionProps) {
   const [reason, setReason] = useState<VoidReason>('requested_by_customer');
-  const [idempotencyKey] = useState(newIdempotencyKey);
+  const requestKey = useRequestKey();
   const { pending, error, submit } = useSubmit(
-    () => api.void(charge.id, reason, idempotencyKey),
+    () =>
+      api.void(charge.id, reason, requestKey({ chargeId: charge.id, reason })),
     onDone,
   );
 
