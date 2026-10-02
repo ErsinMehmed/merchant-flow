@@ -129,10 +129,19 @@ docker compose up --build --detach --wait
 Each suite runs in its own container. The PHP and Go suites use a separate throwaway MySQL (`mysql-test`, on tmpfs), never the demo database.
 
 ```sh
+docker compose --profile test run --rm phpstan       # PHPStan (level 6, Larastan)
 docker compose --profile test run --rm php-test      # PHPUnit: domain rules, policies, Nova, seeders
-docker compose --profile test run --rm go-test       # go vet + unit and MySQL integration tests
+docker compose --profile test run --rm go-test       # go vet + unit and MySQL integration tests, race detector on
 docker compose --profile test run --rm portal-test   # TypeScript, ESLint, Vitest
 docker compose --profile test down                   # remove the test database afterwards
+```
+
+Dependency audits check the locked production dependencies against published advisories and need no Nova credentials:
+
+```sh
+docker compose --profile audit run --rm audit-go      # govulncheck
+docker compose --profile audit run --rm audit-php     # composer audit
+docker compose --profile audit run --rm audit-portal  # npm audit
 ```
 
 `go-test` first runs the PHP migrations and seeders against its own test database, so the Go tests always run against the real schema and the real role definitions.
@@ -157,14 +166,14 @@ The second command removes only the `merchant-flow-e2e` project's containers and
 
 ### Continuous integration
 
-`.github/workflows/tests.yml` runs on every push and pull request:
+`.github/workflows/tests.yml` runs on pull requests and pushes to `main`. A newer push to a pull request cancels the older run.
 
-| Job                                | What it runs                                                            | Needs Nova secrets |
-| ---------------------------------- | ----------------------------------------------------------------------- | ------------------ |
-| Merchant portal                    | `portal-test`: TypeScript, ESLint, Vitest                               | no                 |
-| Go API                             | gofmt, `go vet`, unit tests                                             | no                 |
-| PHP tests and Go integration tests | `php-test` and `go-test` against a test MySQL                           | yes                |
-| Full stack                         | `docker compose up`, smoke, Playwright browser tests, restart and smoke | yes                |
+| Job                          | What it runs                                                            | Needs Nova secrets |
+| ---------------------------- | ----------------------------------------------------------------------- | ------------------ |
+| Merchant portal              | `portal-test`: TypeScript, ESLint, Vitest                               | no                 |
+| Go API                       | gofmt, `go vet`, unit tests with the race detector                      | no                 |
+| PHP and Go integration tests | `phpstan`, then `php-test` and `go-test` against a test MySQL           | yes                |
+| Full stack                   | `docker compose up`, smoke, Playwright browser tests, restart and smoke | yes                |
 
 The PHP image cannot be built without Nova, so the last two jobs run only when the repository has the `NOVA_USERNAME` (Nova account email) and `NOVA_LICENSE_KEY` secrets; otherwise they are skipped with a notice. To add them:
 
@@ -172,6 +181,17 @@ The PHP image cannot be built without Nova, so the last two jobs run only when t
 gh secret set NOVA_USERNAME
 gh secret set NOVA_LICENSE_KEY
 ```
+
+`.github/workflows/security.yml` runs the three dependency audits on pull requests, on pushes to `main` and every Monday, so advisories published after the last change still surface.
+
+Actions are pinned to commit SHAs and images to digests. Dependabot (`.github/dependabot.yml`) proposes weekly updates for them and for the Go, Composer and npm dependencies. To update `php/composer.lock` it needs the same two Nova values as Dependabot secrets:
+
+```sh
+gh secret set NOVA_USERNAME --app dependabot
+gh secret set NOVA_LICENSE_KEY --app dependabot
+```
+
+The Playwright npm package and the browser image in `docker/e2e/Dockerfile` must stay on the same version, so they are updated together by hand.
 
 Formatting (Prettier, Pint, gofmt) runs without Nova credentials:
 

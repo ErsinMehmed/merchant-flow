@@ -1,0 +1,87 @@
+version: 2
+
+# Actions and images are pinned to commit SHAs and digests; these updates keep
+# the pins current. Minor and patch updates are grouped per ecosystem.
+
+registries:
+  # Laravel Nova is a licensed package. Dependabot reads these from its own
+  # secrets (Settings → Secrets → Dependabot), not from the Actions secrets.
+  nova:
+    type: composer-repository
+    url: https://nova.laravel.com
+    username: ${{ secrets.NOVA_USERNAME }}
+    password: ${{ secrets.NOVA_LICENSE_KEY }}
+
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      actions:
+        patterns: ['*']
+
+  - package-ecosystem: docker
+    directories:
+      - /docker/php
+      - /docker/nginx
+      - /docker/format
+      - /go-api
+    schedule:
+      interval: weekly
+    groups:
+      docker:
+        update-types: [minor, patch, digest]
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      docker-compose:
+        update-types: [minor, patch, digest]
+
+  - package-ecosystem: gomod
+    directory: /go-api
+    schedule:
+      interval: weekly
+    groups:
+      go:
+        update-types: [minor, patch]
+
+  - package-ecosystem: composer
+    directory: /php
+    registries: [nova]
+    schedule:
+      interval: weekly
+    groups:
+      php:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /merchant-portal
+    schedule:
+      interval: weekly
+    groups:
+      portal:
+        update-types: [minor, patch]
+    ignore:
+      # Must match the browser image in docker/e2e/Dockerfile; both are
+      # updated together by hand.
+      - dependency-name: '@playwright/test'
+
+  - package-ecosystem: npm
+    directory: /tools/format
+    schedule:
+      interval: weekly
+    groups:
+      format-node:
+        patterns: ['*']
+
+  - package-ecosystem: composer
+    directory: /tools/format
+    schedule:
+      interval: weekly
+    groups:
+      format-php:
+        patterns: ['*']

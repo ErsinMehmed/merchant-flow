@@ -1,0 +1,39 @@
+name: Security
+
+# Checks the locked production dependencies against published advisories.
+# The weekly run catches advisories published after the last code change.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: '0 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+# The audit services and their image pins live in compose.yaml. None of them
+# needs the Nova credentials.
+jobs:
+  audit:
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Go (govulncheck)
+            service: audit-go
+          - name: PHP (composer audit)
+            service: audit-php
+          - name: Merchant portal (npm audit)
+            service: audit-portal
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - run: docker compose --profile audit run --rm ${{ matrix.service }}
