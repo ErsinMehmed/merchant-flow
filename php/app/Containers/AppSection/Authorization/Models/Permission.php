@@ -7,6 +7,11 @@ use Spatie\Permission\Models\Permission as SpatiePermission;
 
 final class Permission extends SpatiePermission
 {
+    public function label(): string
+    {
+        return PermissionName::tryFrom($this->name)?->label() ?? $this->name;
+    }
+
     public function description(): ?string
     {
         return PermissionName::tryFrom($this->name)?->description();

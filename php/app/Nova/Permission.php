@@ -18,11 +18,21 @@ final class Permission extends Resource
 
     public static $group = 'Access';
 
+    /**
+     * Readable label for attach dropdowns and breadcrumbs; the raw name
+     * (shared with the Go API) stays visible as the key column.
+     */
+    public function title(): string
+    {
+        return $this->resource->label();
+    }
+
     public function fields(NovaRequest $request): array
     {
         return [
             ID::make(),
-            Text::make('Name')->sortable(),
+            Text::make('Permission', fn (): string => $this->resource->label()),
+            Text::make('Key', 'name')->sortable(),
             Text::make('Description', fn (): ?string => $this->resource->description()),
             BelongsToMany::make('Roles', 'roles', Role::class),
         ];

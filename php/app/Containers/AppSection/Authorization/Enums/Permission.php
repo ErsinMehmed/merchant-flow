@@ -16,6 +16,20 @@ enum Permission: string
     case ManageAgents = 'agents.manage';
     case ManageUsers = 'users.manage';
 
+    public function label(): string
+    {
+        return match ($this) {
+            self::ViewCharges => 'View charges',
+            self::CreateCharges => 'Create charges',
+            self::CaptureCharges => 'Capture charges',
+            self::RefundCharges => 'Refund charges',
+            self::VoidCharges => 'Void charges',
+            self::ManageMerchants => 'Manage merchants',
+            self::ManageAgents => 'Manage agents',
+            self::ManageUsers => 'Manage users',
+        };
+    }
+
     public function description(): string
     {
         return match ($this) {
