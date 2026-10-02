@@ -19,6 +19,7 @@ x-php-environment: &php-environment
   CACHE_STORE: database
   QUEUE_CONNECTION: sync
   NOVA_PATH: /admin
+  NOVA_LICENSE_KEY: ${NOVA_LICENSE_KEY:-}
   SEED_DEMO_DATA: 'true'
 
 x-php-build: &php-build

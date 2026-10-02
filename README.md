@@ -30,6 +30,8 @@ All data is fictional. Payments only record rows in `charges`; nothing is sent t
 
    Then edit `.secrets/composer-auth.json`: `username` is the Nova account email, `password` is the license key.
 
+   To register the running Nova UI, also set `NOVA_LICENSE_KEY` in the ignored root `.env` file. The Composer secret is available only during the image build; without the runtime key, Nova shows `UNREGISTERED` in its header. This setting is optional for local development.
+
 2. Start everything:
 
    ```sh
