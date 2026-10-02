@@ -6,6 +6,7 @@ use App\Containers\AppSection\Account\Models\Account;
 use App\Containers\AppSection\Charge\Models\Charge;
 use App\Containers\AppSection\Demo\Data\Seeders\DemoDataSeeder_1;
 use App\Containers\AppSection\User\Models\User;
+use App\Containers\AppSection\User\Models\UserAvatar;
 use App\Ship\Parents\Tests\TestCase;
 use Illuminate\Support\Facades\DB;
 
@@ -45,6 +46,15 @@ final class DemoDataSeederTest extends TestCase
         $this->assertTrue(Charge::query()->where('status', 'captured')->where('amount_refunded', '>', 0)->exists());
         $this->assertTrue(Charge::query()->where('disputed', true)->exists());
         $this->assertSame(['CAD', 'EUR', 'GBP', 'USD'], Charge::query()->distinct()->orderBy('currency')->pluck('currency')->all());
+    }
+
+    public function test_every_demo_user_has_a_profile_photo(): void
+    {
+        $this->seed(DemoDataSeeder_1::class);
+
+        $this->assertSame(12, User::query()->count());
+        $this->assertFalse(User::query()->whereNull('avatar_updated_at')->exists());
+        $this->assertSame(['image/webp'], UserAvatar::query()->distinct()->pluck('content_type')->all());
     }
 
     /**

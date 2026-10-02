@@ -9,9 +9,11 @@ use App\Containers\AppSection\Agent\Models\Agent;
 use App\Containers\AppSection\Authorization\Data\Seeders\AuthorizationSeeder_1;
 use App\Containers\AppSection\Charge\Enums\ChargeStatus;
 use App\Containers\AppSection\Charge\Enums\VoidReason;
+use App\Containers\AppSection\User\Actions\UpdateUserAvatarAction;
 use App\Containers\AppSection\User\Models\User;
 use App\Ship\Parents\Seeders\Seeder as ParentSeeder;
 use Carbon\CarbonImmutable;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -77,6 +79,13 @@ final class DemoDataSeeder_1 extends ParentSeeder
 
     private const CUSTOMERS = 2500;
 
+    /**
+     * Profile photos, one per demo user, named after the local part of the
+     * email address: animals from Microsoft Fluent Emoji (MIT, see
+     * Avatars/README.md).
+     */
+    private const AVATARS = __DIR__.'/../Avatars';
+
     public function run(): void
     {
         if (! config('appSection-demo.enabled') || User::query()->where('email', self::ADMIN_EMAIL)->exists()) {
@@ -135,7 +144,7 @@ final class DemoDataSeeder_1 extends ParentSeeder
     private function user(string $email, string $name, bool $isAdmin = false, bool $isAgent = false, bool $isMerchant = false): User
     {
         // Created through the model so the observer assigns the Spatie roles.
-        return User::query()->create([
+        $user = User::query()->create([
             'name' => $name,
             'email' => $email,
             'password' => config('appSection-demo.password'),
@@ -143,6 +152,13 @@ final class DemoDataSeeder_1 extends ParentSeeder
             'is_agent' => $isAgent,
             'is_merchant' => $isMerchant,
         ]);
+
+        $photo = self::AVATARS.'/'.strstr($email, '@', true).'.webp';
+        if (is_file($photo)) {
+            app(UpdateUserAvatarAction::class)->run($user, new UploadedFile($photo, basename($photo), test: true));
+        }
+
+        return $user;
     }
 
     private function account(string $name, string $mid, AccountStatus $status, bool $active, User $creator): Account
