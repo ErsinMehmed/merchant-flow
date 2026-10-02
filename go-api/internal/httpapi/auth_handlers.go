@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"errors"
 	"math"
 	"net/http"
@@ -14,9 +15,7 @@ import (
 
 const sessionCookie = "mf_session"
 
-// bcrypt only looks at the first 72 bytes; longer input is refused rather
-// than silently truncated.
-const maxPasswordBytes = 72
+const maxPasswordBytes = auth.MaxPasswordBytes
 
 type loginRequest struct {
 	Email    string `json:"email"`
@@ -29,10 +28,24 @@ type userJSON struct {
 	Email       string   `json:"email"`
 	Roles       []string `json:"roles"`
 	Permissions []string `json:"permissions"`
+	// AvatarURL is null when the user has no profile photo.
+	AvatarURL *string `json:"avatar_url"`
 }
 
-func toUserJSON(p access.Principal) userJSON {
-	return userJSON{ID: p.UserID, Name: p.Name, Email: p.Email, Roles: p.Roles, Permissions: p.Permissions}
+// userResponse describes the signed-in user, as /me and login return it.
+func (s *Server) userResponse(ctx context.Context, p access.Principal) (userJSON, error) {
+	avatarUpdatedAt, err := s.profile.AvatarUpdatedAt(ctx, p.UserID)
+	if err != nil {
+		return userJSON{}, err
+	}
+	return userJSON{
+		ID:          p.UserID,
+		Name:        p.Name,
+		Email:       p.Email,
+		Roles:       p.Roles,
+		Permissions: p.Permissions,
+		AvatarURL:   avatarURL(avatarUpdatedAt),
+	}, nil
 }
 
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
@@ -84,6 +97,11 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		writeInternal(w, r, err)
 		return
 	}
+	userBody, err := s.userResponse(r.Context(), principal)
+	if err != nil {
+		writeInternal(w, r, err)
+		return
+	}
 
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookie,
@@ -101,7 +119,7 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, dataBody{Data: map[string]any{
 		"token":      session.Token,
 		"expires_at": session.ExpiresAt,
-		"user":       toUserJSON(principal),
+		"user":       userBody,
 	}})
 }
 
@@ -122,7 +140,16 @@ func (s *Server) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, dataBody{Data: toUserJSON(principalFrom(r.Context()))})
+	s.writeUser(w, r)
+}
+
+func (s *Server) writeUser(w http.ResponseWriter, r *http.Request) {
+	body, err := s.userResponse(r.Context(), principalFrom(r.Context()))
+	if err != nil {
+		writeInternal(w, r, err)
+		return
+	}
+	writeJSON(w, http.StatusOK, dataBody{Data: body})
 }
 
 func (s *Server) clearSessionCookie(w http.ResponseWriter) {

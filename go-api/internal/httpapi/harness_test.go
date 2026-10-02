@@ -20,6 +20,7 @@ import (
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/charge"
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/config"
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/database"
+	"github.com/ErsinMehmed/merchant-flow/go-api/internal/profile"
 )
 
 // Integration tests run the real handler against MySQL with the schema and
@@ -63,7 +64,7 @@ func newHarness(t *testing.T) *harness {
 	t.Cleanup(func() { _ = db.Close() })
 
 	cfg := config.Config{SessionTTL: time.Hour, CookieSecure: false, TrustProxyHeaders: true}
-	srv := httptest.NewServer(New(cfg, db, auth.NewService(db, time.Hour), charge.NewService(db)).Handler())
+	srv := httptest.NewServer(New(cfg, db, auth.NewService(db, time.Hour), charge.NewService(db), profile.NewService(db)).Handler())
 	t.Cleanup(srv.Close)
 
 	return &harness{t: t, db: db, url: srv.URL}

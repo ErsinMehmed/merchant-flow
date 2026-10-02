@@ -78,6 +78,10 @@ func TestEndpointsRequireASession(t *testing.T) {
 		{http.MethodPost, "/api/v1/charges/1/capture"},
 		{http.MethodPost, "/api/v1/charges/1/refund"},
 		{http.MethodPost, "/api/v1/charges/1/void"},
+		{http.MethodPost, "/api/v1/me/password"},
+		{http.MethodGet, "/api/v1/me/avatar"},
+		{http.MethodPut, "/api/v1/me/avatar"},
+		{http.MethodDelete, "/api/v1/me/avatar"},
 	}
 	for _, route := range routes {
 		expectError(t, h.request(route[0], route[1], "", nil, nil), http.StatusUnauthorized, "unauthenticated")

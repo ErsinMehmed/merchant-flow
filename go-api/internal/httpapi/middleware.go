@@ -16,6 +16,7 @@ import (
 
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/access"
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/auth"
+	"github.com/ErsinMehmed/merchant-flow/go-api/internal/profile"
 )
 
 type contextKey int
@@ -95,12 +96,19 @@ func secureHeaders(next http.Handler) http.Handler {
 }
 
 // requireJSON rejects bodies that are not JSON. Besides keeping parsing
-// simple, it stops HTML forms on other sites from posting to the API.
+// simple, it stops HTML forms on other sites from posting to the API. The one
+// exception is a profile photo upload, sent as the image itself; forms cannot
+// send image types either.
 func requireJSON(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.ContentLength != 0 && r.Method != http.MethodGet {
 			mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
-			if err != nil || mediaType != "application/json" {
+			photo := r.Method == http.MethodPut && r.URL.Path == avatarPath
+			switch {
+			case photo && (err != nil || !profile.AcceptedType(mediaType)):
+				writeError(w, http.StatusUnsupportedMediaType, "unsupported_media_type", "Send the photo as image/jpeg, image/png or image/webp.")
+				return
+			case !photo && (err != nil || mediaType != "application/json"):
 				writeError(w, http.StatusUnsupportedMediaType, "unsupported_media_type", "Send the request body as application/json.")
 				return
 			}

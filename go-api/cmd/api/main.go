@@ -18,6 +18,7 @@ import (
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/database"
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/httpapi"
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/idempotency"
+	"github.com/ErsinMehmed/merchant-flow/go-api/internal/profile"
 )
 
 const cleanupInterval = 10 * time.Minute
@@ -46,7 +47,7 @@ func run() error {
 	authService := auth.NewService(db, cfg.SessionTTL)
 	server := &http.Server{
 		Addr:              cfg.Addr,
-		Handler:           httpapi.New(cfg, db, authService, charge.NewService(db)).Handler(),
+		Handler:           httpapi.New(cfg, db, authService, charge.NewService(db), profile.NewService(db)).Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,

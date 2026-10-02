@@ -10,6 +10,7 @@ import (
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/auth"
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/charge"
 	"github.com/ErsinMehmed/merchant-flow/go-api/internal/config"
+	"github.com/ErsinMehmed/merchant-flow/go-api/internal/profile"
 )
 
 type Server struct {
@@ -17,15 +18,17 @@ type Server struct {
 	db      *sql.DB
 	auth    *auth.Service
 	charges *charge.Service
+	profile *profile.Service
 	now     func() time.Time
 }
 
-func New(cfg config.Config, db *sql.DB, authService *auth.Service, charges *charge.Service) *Server {
+func New(cfg config.Config, db *sql.DB, authService *auth.Service, charges *charge.Service, profiles *profile.Service) *Server {
 	return &Server{
 		cfg:     cfg,
 		db:      db,
 		auth:    authService,
 		charges: charges,
+		profile: profiles,
 		now:     func() time.Time { return time.Now().UTC() },
 	}
 }
@@ -38,6 +41,10 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/v1/auth/login", s.login)
 	mux.HandleFunc("POST /api/v1/auth/logout", s.logout)
 	mux.HandleFunc("GET /api/v1/me", s.authenticated(s.me))
+	mux.HandleFunc("POST /api/v1/me/password", s.authenticated(s.changePassword))
+	mux.HandleFunc("GET "+avatarPath, s.authenticated(s.avatar))
+	mux.HandleFunc("PUT "+avatarPath, s.authenticated(s.updateAvatar))
+	mux.HandleFunc("DELETE "+avatarPath, s.authenticated(s.deleteAvatar))
 
 	mux.HandleFunc("GET /api/v1/accounts", s.authenticated(s.listAccounts))
 

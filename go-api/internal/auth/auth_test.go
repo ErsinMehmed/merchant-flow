@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"strings"
 	"testing"
 	"time"
 )
@@ -15,6 +16,29 @@ func TestPasswordMatchesLaravelHashes(t *testing.T) {
 	}
 	if passwordMatches("not-a-bcrypt-hash", "anything") {
 		t.Fatal("an invalid hash must not verify")
+	}
+}
+
+func TestPasswordProblemFollowsTheLaravelDefaults(t *testing.T) {
+	accepted := []string{"Test-Passw0rd!", "Пароль-Дълга1", "Spaced Out 9a"}
+	for _, p := range accepted {
+		if problem := PasswordProblem(p); problem != "" {
+			t.Errorf("%q was refused: %s", p, problem)
+		}
+	}
+
+	refused := map[string]string{
+		"Sh0rt!":                   "must be at least 8 characters",
+		"all-lower-case-1":         "must contain upper and lower case letters",
+		"ALL-UPPER-CASE-1":         "must contain upper and lower case letters",
+		"No-Numbers-Here":          "must contain a number",
+		"NoSymbols123":             "must contain a symbol",
+		strings.Repeat("Aa1!", 19): "must be at most 72 bytes",
+	}
+	for p, want := range refused {
+		if got := PasswordProblem(p); got != want {
+			t.Errorf("%q: got %q, want %q", p, got, want)
+		}
 	}
 }
 
