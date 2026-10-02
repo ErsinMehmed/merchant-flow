@@ -3,10 +3,10 @@ WORKDIR /opt/format/node
 COPY tools/format/package.json tools/format/package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
 
-FROM golang:1.26-alpine@sha256:8ac98ca534ac3f51e1f420a1dd2c15e74c75cfa0f23f3ad27eb5d7236c349a0c AS go
+FROM golang:1.27-alpine@sha256:8a5910f31396cd4d89662f56c68b3ae31d374308270a1c3bd96672ee5ed43414 AS go
 FROM composer:2@sha256:af98f42dfff7c68ba8d53c2164fd9fde1087b7d449514baa38c418b1f6bc4bac AS composer
 
-FROM php:8.4-fpm-alpine@sha256:78cd8de9970a9cd6ff4d98860a94eb5bf37dd2d5776b4785562dbfad01c29d5a
+FROM php:8.5-fpm-alpine@sha256:fa01fb1645cd0fc566a5f146b099adace33b906571f972f71f2182a7c12d1cd7
 RUN apk add --no-cache libstdc++
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 COPY --from=prettier /usr/local/bin/node /usr/local/bin/node
