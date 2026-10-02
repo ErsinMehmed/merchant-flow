@@ -8,6 +8,7 @@ use App\Nova\Account;
 use App\Nova\Agent;
 use App\Nova\Charge;
 use App\Nova\Dashboards\Main;
+use App\Nova\Http\DashboardController;
 use App\Nova\Permission;
 use App\Nova\Role;
 use App\Nova\User;
@@ -16,6 +17,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
 use Laravel\Fortify\Features;
+use Laravel\Nova\Http\Controllers\Pages\DashboardController as NovaDashboardController;
 use Laravel\Nova\Menu\MenuItem;
 use Laravel\Nova\Menu\MenuSection;
 use Laravel\Nova\Nova;
@@ -23,6 +25,14 @@ use Laravel\Nova\NovaApplicationServiceProvider;
 
 final class NovaServiceProvider extends NovaApplicationServiceProvider
 {
+    public function register(): void
+    {
+        parent::register();
+
+        // One breadcrumb on the dashboard instead of "Dashboards > Dashboard".
+        $this->app->bind(NovaDashboardController::class, DashboardController::class);
+    }
+
     public function boot(): void
     {
         // Fortify throttles the Nova login form with this limiter, but only if

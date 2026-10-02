@@ -11,6 +11,15 @@ use Laravel\Nova\Http\Requests\NovaRequest;
 
 final class Main extends Dashboard
 {
+    /**
+     * Shown in the menu and breadcrumbs; Nova's default is the class name.
+     * The URL stays /dashboards/main.
+     */
+    public function name(): string
+    {
+        return 'Dashboard';
+    }
+
     public function cards(): array
     {
         $canViewCharges = static fn (NovaRequest $request): bool => (bool) $request->user()?->hasPermission(Permission::ViewCharges);
