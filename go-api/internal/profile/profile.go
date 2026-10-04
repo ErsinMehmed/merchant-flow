@@ -80,7 +80,7 @@ func (s *Service) SaveAvatar(ctx context.Context, userID int64, a Avatar) error 
 		); err != nil {
 			return fmt.Errorf("store profile photo: %w", err)
 		}
-		return s.touch(ctx, tx, userID, s.now().Truncate(time.Second))
+		return s.touch(ctx, tx, userID, s.now().UTC())
 	})
 }
 

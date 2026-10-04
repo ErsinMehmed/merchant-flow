@@ -4,6 +4,7 @@ namespace Tests\Feature\Nova;
 
 use App\Containers\AppSection\User\Models\User;
 use App\Containers\AppSection\User\Models\UserAvatar;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\UploadedFile;
 use Tests\TestCase;
 
@@ -32,7 +33,7 @@ final class UserAvatarTest extends TestCase
         $fields = $this->actingAs($admin)->getJson("/nova-api/users/{$user->id}")->json('resource.fields');
         $field = collect($fields)->firstWhere('attribute', 'avatar_updated_at');
         $this->assertIsArray($field);
-        $this->assertSame("/admin/user-avatars/{$user->id}?v={$updatedAt->getTimestamp()}", $field['thumbnailUrl']);
+        $this->assertSame("/admin/user-avatars/{$user->id}?v={$updatedAt->format('Uu')}", $field['thumbnailUrl']);
 
         $this->actingAs($admin)->get($field['thumbnailUrl'])
             ->assertOk()
@@ -52,6 +53,35 @@ final class UserAvatarTest extends TestCase
             ->assertJsonValidationErrors('avatar_updated_at');
 
         $this->assertFalse(UserAvatar::query()->whereKey($user->id)->exists());
+    }
+
+    public function test_replacing_a_photo_within_one_second_changes_its_url(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $user = User::factory()->merchant()->create();
+        $firstUrl = $secondUrl = null;
+
+        try {
+            $this->travelTo(CarbonImmutable::parse('2026-10-04 12:00:00.123456', 'UTC'));
+            $this->actingAs($admin)
+                ->post("/nova-api/users/{$user->id}?_method=PUT", $this->form($user, $this->png()))
+                ->assertOk();
+            $firstUrl = collect($this->getJson("/nova-api/users/{$user->id}")->json('resource.fields'))
+                ->firstWhere('attribute', 'avatar_updated_at')['thumbnailUrl'];
+
+            $this->travelTo(CarbonImmutable::parse('2026-10-04 12:00:00.654321', 'UTC'));
+            $this->actingAs($admin)
+                ->post("/nova-api/users/{$user->id}?_method=PUT", $this->form($user, $this->png()))
+                ->assertOk();
+            $secondUrl = collect($this->getJson("/nova-api/users/{$user->id}")->json('resource.fields'))
+                ->firstWhere('attribute', 'avatar_updated_at')['thumbnailUrl'];
+        } finally {
+            $this->travelBack();
+        }
+
+        $this->assertNotNull($firstUrl);
+        $this->assertNotNull($secondUrl);
+        $this->assertNotSame($firstUrl, $secondUrl);
     }
 
     public function test_removing_the_photo_deletes_it(): void

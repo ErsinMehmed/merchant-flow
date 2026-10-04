@@ -28,6 +28,9 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[ObservedBy(UserObserver::class)]
 final class User extends ParentUserModel
 {
+    // Preserve sub-second avatar versions when Eloquent writes the timestamp.
+    protected $dateFormat = 'Y-m-d H:i:s.u';
+
     protected $fillable = [
         'name',
         'email',

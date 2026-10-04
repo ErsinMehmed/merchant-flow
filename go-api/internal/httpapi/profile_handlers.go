@@ -19,7 +19,7 @@ func avatarURL(updatedAt *time.Time) *string {
 	if updatedAt == nil {
 		return nil
 	}
-	url := avatarPath + "?v=" + strconv.FormatInt(updatedAt.Unix(), 10)
+	url := avatarPath + "?v=" + strconv.FormatInt(updatedAt.UnixMicro(), 10)
 	return &url
 }
 

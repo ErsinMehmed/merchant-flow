@@ -5,10 +5,19 @@ import (
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 // A 1x1 transparent PNG.
 var testPNG, _ = base64.StdEncoding.DecodeString("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=")
+
+func TestAvatarURLChangesForTwoUpdatesWithinOneSecond(t *testing.T) {
+	first := time.Date(2026, 10, 4, 12, 0, 0, 123456000, time.UTC)
+	second := first.Add(time.Microsecond)
+	if *avatarURL(&first) == *avatarURL(&second) {
+		t.Fatal("two photo changes within one second must have different URLs")
+	}
+}
 
 func (c *client) putPhoto(contentType string, content []byte) response {
 	c.h.t.Helper()
@@ -17,7 +26,8 @@ func (c *client) putPhoto(contentType string, content []byte) response {
 
 func TestProfilePhotoCanBeUploadedServedAndRemoved(t *testing.T) {
 	h := newHarness(t)
-	c := h.login(h.user("merchant"))
+	u := h.user("merchant")
+	c := h.login(u)
 
 	if url := c.get("/api/v1/me").data()["avatar_url"]; url != nil {
 		t.Fatalf("expected no photo, got %v", url)
@@ -25,6 +35,10 @@ func TestProfilePhotoCanBeUploadedServedAndRemoved(t *testing.T) {
 
 	uploaded := c.putPhoto("image/png", testPNG)
 	expectStatus(t, uploaded, http.StatusOK)
+	var microseconds int
+	if err := h.db.QueryRow(`SELECT MICROSECOND(avatar_updated_at) FROM users WHERE id = ?`, u.ID).Scan(&microseconds); err != nil || microseconds == 0 {
+		t.Fatalf("photo version lost sub-second precision: %d (%v)", microseconds, err)
+	}
 	url, _ := uploaded.data()["avatar_url"].(string)
 	if !strings.HasPrefix(url, avatarPath+"?v=") {
 		t.Fatalf("unexpected avatar_url %q", url)

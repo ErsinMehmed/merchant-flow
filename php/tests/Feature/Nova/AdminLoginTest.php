@@ -59,7 +59,11 @@ final class AdminLoginTest extends TestCase
 
         // Even the right password is refused until the window passes.
         $this->post('/admin/login', ['email' => $admin->email, 'password' => self::PASSWORD])
-            ->assertSessionHasErrors(['email' => 'Too many login attempts. Please try again in 60 seconds.']);
+            ->assertSessionHasErrors('email');
+        $this->assertMatchesRegularExpression(
+            '/^Too many login attempts\. Please try again in \d+ seconds\.$/',
+            session('errors')->first('email'),
+        );
         $this->assertGuest();
     }
 

@@ -102,7 +102,7 @@ final class User extends Resource
     private static function photo(): Avatar
     {
         $url = static fn (mixed $updatedAt, ?string $disk, UserModel $user): ?string => $updatedAt instanceof CarbonInterface
-            ? route('nova.user-avatar', ['user' => $user->getKey(), 'v' => $updatedAt->getTimestamp()], absolute: false)
+            ? route('nova.user-avatar', ['user' => $user->getKey(), 'v' => $updatedAt->format('Uu')], absolute: false)
             : null;
 
         return Avatar::make('Photo', 'avatar_updated_at')
