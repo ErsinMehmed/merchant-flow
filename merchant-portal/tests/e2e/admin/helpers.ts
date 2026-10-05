@@ -1,12 +1,22 @@
 import { expect, type Page } from '@playwright/test';
 
-const PASSWORD = 'MerchantFlowDemo!2026';
+export const ADMIN_EMAIL = 'admin@merchant-flow.test';
+export const PASSWORD = 'MerchantFlowDemo!2026';
+
+/** Fills and submits the Nova login form the page is already on. */
+export async function submitLogin(
+  page: Page,
+  email: string,
+  password = PASSWORD,
+) {
+  await page.locator('input[type="email"]').fill(email);
+  await page.locator('input[type="password"]').fill(password);
+  await page.locator('button[type="submit"]').click();
+}
 
 export async function signInAdmin(page: Page) {
   await page.goto('/admin/login');
-  await page.locator('input[type="email"]').fill('admin@merchant-flow.test');
-  await page.locator('input[type="password"]').fill(PASSWORD);
-  await page.locator('button[type="submit"]').click();
+  await submitLogin(page, ADMIN_EMAIL);
   await expect(page).toHaveURL(/\/admin\/dashboards\/main$/);
   await expect(
     page.getByRole('link', { name: 'Charges' }).first(),

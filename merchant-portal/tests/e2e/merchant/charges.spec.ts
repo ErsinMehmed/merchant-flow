@@ -6,10 +6,8 @@ test('create form rejects invalid data before submitting', async ({ page }) => {
   await page.getByRole('button', { name: 'New charge' }).click();
   const dialog = page.getByRole('dialog', { name: 'New charge' });
   await dialog.getByRole('button', { name: 'Charge', exact: true }).click();
-  await expect(
-    dialog.getByText('Enter an amount between 0.01 and 999,999.99.'),
-  ).toBeVisible();
-  await expect(dialog.getByText('Enter a valid email address.')).toBeVisible();
+  await expect(dialog.getByText('Enter an amount.')).toBeVisible();
+  await expect(dialog.getByText('Enter the customer email.')).toBeVisible();
   await expect(dialog).toBeVisible();
 });
 

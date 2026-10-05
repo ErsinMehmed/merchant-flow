@@ -30,11 +30,16 @@ export function CreateChargeDialog({ accounts, onCreated, onCancel }: Props) {
   const minorAmount = parseAmount(amount);
   const normalizedEmail = email.trim();
   const localErrors: Record<string, string> = {};
-  if (!usable.some((account) => String(account.id) === accountId))
+  if (accountId === '') localErrors.account_id = 'Choose a merchant account.';
+  else if (!usable.some((account) => String(account.id) === accountId))
     localErrors.account_id = 'Choose a merchant account that accepts charges.';
-  if (minorAmount === null)
-    localErrors.amount = 'Enter an amount between 0.01 and 999,999.99.';
-  if (new TextEncoder().encode(normalizedEmail).length > 254)
+  if (amount.trim() === '') localErrors.amount = 'Enter an amount.';
+  else if (minorAmount === null)
+    localErrors.amount =
+      'Amount must be between 0.01 and 999,999.99, with up to two decimals.';
+  if (normalizedEmail === '')
+    localErrors.customer_email = 'Enter the customer email.';
+  else if (new TextEncoder().encode(normalizedEmail).length > 254)
     localErrors.customer_email = 'Email must be at most 254 characters.';
   else if (!EMAIL_PATTERN.test(normalizedEmail))
     localErrors.customer_email = 'Enter a valid email address.';

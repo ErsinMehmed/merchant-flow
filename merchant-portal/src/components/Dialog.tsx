@@ -1,4 +1,10 @@
-import { useEffect, useId, useRef, type ReactNode } from 'react';
+import {
+  useEffect,
+  useId,
+  useRef,
+  type MouseEvent,
+  type ReactNode,
+} from 'react';
 
 interface DialogProps {
   title: string;
@@ -14,6 +20,7 @@ interface DialogProps {
 export function Dialog({ title, open, onClose, children }: DialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const pressedBackdrop = useRef(false);
 
   useEffect(() => {
     const dialog = ref.current;
@@ -23,9 +30,10 @@ export function Dialog({ title, open, onClose, children }: DialogProps) {
   }, [open]);
 
   return (
-    // Only user actions (Escape, the close button) report a close. The native
-    // "close" event also fires when this component closes the dialog itself,
-    // e.g. while another dialog is taking over, and must not be forwarded.
+    // Only user actions (Escape, the close button, a backdrop click) report a
+    // close. The native "close" event also fires when this component closes
+    // the dialog itself, e.g. while another dialog is taking over, and must
+    // not be forwarded.
     <dialog
       ref={ref}
       className="dialog"
@@ -33,6 +41,16 @@ export function Dialog({ title, open, onClose, children }: DialogProps) {
       onCancel={(e) => {
         e.preventDefault();
         onClose();
+      }}
+      // Backdrop clicks target the <dialog> itself. Both press and release
+      // must land outside the box, so a text selection dragged out of an
+      // input does not close the form.
+      onMouseDown={(e) => {
+        pressedBackdrop.current = isOutside(e);
+      }}
+      onClick={(e) => {
+        if (pressedBackdrop.current && isOutside(e)) onClose();
+        pressedBackdrop.current = false;
       }}
     >
       <header className="dialog-header">
@@ -48,5 +66,16 @@ export function Dialog({ title, open, onClose, children }: DialogProps) {
       </header>
       {open && children}
     </dialog>
+  );
+}
+
+function isOutside(e: MouseEvent<HTMLDialogElement>): boolean {
+  if (e.target !== e.currentTarget) return false;
+  const rect = e.currentTarget.getBoundingClientRect();
+  return (
+    e.clientX < rect.left ||
+    e.clientX > rect.right ||
+    e.clientY < rect.top ||
+    e.clientY > rect.bottom
   );
 }

@@ -78,11 +78,31 @@ describe('CreateChargeDialog', () => {
     );
 
     await userEvent.type(screen.getByLabelText('Amount'), '1.005');
+    await userEvent.type(screen.getByLabelText('Customer email'), 'jane@');
     await userEvent.click(screen.getByRole('button', { name: 'Charge' }));
 
     expect(create).not.toHaveBeenCalled();
-    expect(screen.getByText(/Enter an amount/)).toBeInTheDocument();
-    expect(screen.getByText(/valid email/)).toBeInTheDocument();
+    expect(screen.getByText(/Amount must be between/)).toBeInTheDocument();
+    expect(
+      screen.getByText('Enter a valid email address.'),
+    ).toBeInTheDocument();
+  });
+
+  it('asks for missing fields when the form is empty', async () => {
+    const create = vi.spyOn(api, 'createCharge');
+    render(
+      <CreateChargeDialog
+        accounts={accounts}
+        onCreated={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Charge' }));
+
+    expect(create).not.toHaveBeenCalled();
+    expect(screen.getByText('Enter an amount.')).toBeInTheDocument();
+    expect(screen.getByText('Enter the customer email.')).toBeInTheDocument();
   });
 
   it('reuses the same idempotency key when the user retries', async () => {
