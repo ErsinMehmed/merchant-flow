@@ -5,6 +5,7 @@
 (() => {
     const LOGOUT_PROMPT = 'Are you sure you want to log out?';
     const nativeConfirm = window.confirm.bind(window);
+    const waitForPendingRequests = trackNovaRequests();
 
     const translate = (key) => Nova.config('translations')?.[key] || key;
 
@@ -75,6 +76,10 @@
 
     async function logout() {
         try {
+            // Every Nova request may refresh the session cookie. Let requests
+            // already on the wire finish before the server rotates the session.
+            await waitForPendingRequests();
+
             const redirect = await Nova.store.dispatch(
                 'logout',
                 Nova.config('customLogoutPath'),
@@ -90,5 +95,58 @@
         } catch {
             window.location.reload();
         }
+    }
+
+    /**
+     * Track requests created after Nova loads this tool and resolve waiters once
+     * the current batch has completed.
+     *
+     * @returns {() => Promise<void>}
+     */
+    function trackNovaRequests() {
+        const createRequest = Nova.request.bind(Nova);
+        const pending = new Set();
+        const waiters = new Set();
+
+        Nova.request = (options = null) => {
+            const client = createRequest();
+
+            client.interceptors.request.use((config) => {
+                pending.add(config);
+
+                return config;
+            });
+            client.interceptors.response.use(
+                (response) => {
+                    complete(response?.config);
+
+                    return response;
+                },
+                (error) => {
+                    complete(error?.config);
+
+                    return Promise.reject(error);
+                },
+            );
+
+            return options === null ? client : client(options);
+        };
+
+        function complete(config) {
+            if (!config || !pending.delete(config) || pending.size > 0) {
+                return;
+            }
+
+            waiters.forEach((resolve) => resolve());
+            waiters.clear();
+        }
+
+        return () => {
+            if (pending.size === 0) {
+                return Promise.resolve();
+            }
+
+            return new Promise((resolve) => waiters.add(resolve));
+        };
     }
 })();

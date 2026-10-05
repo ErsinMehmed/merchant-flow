@@ -113,13 +113,45 @@ test('agent accounts are turned away at the login form', async ({ page }) => {
 test('after logging out every screen asks for the login again', async ({
   page,
 }) => {
+  let releaseDashboardResponse: (() => void) | undefined;
+  let markDashboardResponseReady: () => void;
+  const dashboardResponseReady = new Promise<void>((resolve) => {
+    markDashboardResponseReady = resolve;
+  });
+
+  await page.route(
+    '**/nova-api/dashboards/cards/main/metrics/approval-rate**',
+    async (route) => {
+      const response = await route.fetch();
+
+      // Reproduce a slow metric response carrying the pre-logout session.
+      await new Promise<void>((resolve) => {
+        releaseDashboardResponse = resolve;
+        markDashboardResponseReady();
+      });
+      await route.fulfill({ response });
+    },
+    { times: 1 },
+  );
+
   await signInAdmin(page);
+  await dashboardResponseReady;
   await page.getByRole('button', { name: 'Avery Admin' }).click();
   await page.getByRole('button', { name: 'Logout' }).click();
+  const logoutRequest = page.waitForRequest('**/admin/logout');
   await page
     .getByRole('alertdialog', { name: 'Logout' })
     .getByRole('button', { name: 'Logout' })
     .click();
+
+  const logoutStartedEarly = await Promise.race([
+    logoutRequest.then(() => true),
+    page.waitForTimeout(300).then(() => false),
+  ]);
+  expect(logoutStartedEarly).toBe(false);
+
+  releaseDashboardResponse?.();
+  await logoutRequest;
   await expect(page).toHaveURL(LOGIN_URL);
 
   for (const screen of SCREENS) {
