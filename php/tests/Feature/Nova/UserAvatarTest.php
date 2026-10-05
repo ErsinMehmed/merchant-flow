@@ -29,13 +29,10 @@ final class UserAvatarTest extends TestCase
         $updatedAt = $user->fresh()?->avatar_updated_at;
         $this->assertNotNull($updatedAt);
 
-        /** @var list<array<string, mixed>> $fields */
-        $fields = $this->actingAs($admin)->getJson("/nova-api/users/{$user->id}")->json('resource.fields');
-        $field = collect($fields)->firstWhere('attribute', 'avatar_updated_at');
-        $this->assertIsArray($field);
-        $this->assertSame("/admin/user-avatars/{$user->id}?v={$updatedAt->format('Uu')}", $field['thumbnailUrl']);
+        $url = $this->thumbnailUrl($user);
+        $this->assertSame("/admin/user-avatars/{$user->id}?v={$updatedAt->format('Uu')}", $url);
 
-        $this->actingAs($admin)->get($field['thumbnailUrl'])
+        $this->actingAs($admin)->get($url)
             ->assertOk()
             ->assertHeader('Content-Type', 'image/png')
             ->assertHeader('X-Content-Type-Options', 'nosniff');
@@ -59,28 +56,23 @@ final class UserAvatarTest extends TestCase
     {
         $admin = User::factory()->admin()->create();
         $user = User::factory()->merchant()->create();
-        $firstUrl = $secondUrl = null;
 
         try {
             $this->travelTo(CarbonImmutable::parse('2026-10-04 12:00:00.123456', 'UTC'));
             $this->actingAs($admin)
                 ->post("/nova-api/users/{$user->id}?_method=PUT", $this->form($user, $this->png()))
                 ->assertOk();
-            $firstUrl = collect($this->getJson("/nova-api/users/{$user->id}")->json('resource.fields'))
-                ->firstWhere('attribute', 'avatar_updated_at')['thumbnailUrl'];
+            $firstUrl = $this->thumbnailUrl($user);
 
             $this->travelTo(CarbonImmutable::parse('2026-10-04 12:00:00.654321', 'UTC'));
             $this->actingAs($admin)
                 ->post("/nova-api/users/{$user->id}?_method=PUT", $this->form($user, $this->png()))
                 ->assertOk();
-            $secondUrl = collect($this->getJson("/nova-api/users/{$user->id}")->json('resource.fields'))
-                ->firstWhere('attribute', 'avatar_updated_at')['thumbnailUrl'];
+            $secondUrl = $this->thumbnailUrl($user);
         } finally {
             $this->travelBack();
         }
 
-        $this->assertNotNull($firstUrl);
-        $this->assertNotNull($secondUrl);
         $this->assertNotSame($firstUrl, $secondUrl);
     }
 
@@ -111,6 +103,17 @@ final class UserAvatarTest extends TestCase
     private function png(): UploadedFile
     {
         return UploadedFile::fake()->createWithContent('photo.png', (string) base64_decode(self::PNG));
+    }
+
+    private function thumbnailUrl(User $user): string
+    {
+        /** @var list<array<string, mixed>> $fields */
+        $fields = $this->getJson("/nova-api/users/{$user->id}")->json('resource.fields');
+        $field = collect($fields)->firstWhere('attribute', 'avatar_updated_at');
+        $this->assertIsArray($field);
+        $this->assertIsString($field['thumbnailUrl']);
+
+        return $field['thumbnailUrl'];
     }
 
     /** @return array<string, mixed> */
