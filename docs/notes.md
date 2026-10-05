@@ -2,30 +2,30 @@
 
 ## Key decisions
 
-- **One permission model.** Spatie's tables are the only source of truth. Both apps use a single guard (`web`) and a stable morph alias (`user`), so the Go API reads exactly the rows Nova writes. Go loads roles and permissions on every request and caches nothing, which is what makes a change in Nova apply on the next API call. The `is_admin`/`is_agent`/`is_merchant` flags are what an administrator edits; an observer keeps the matching roles in sync, and authorization never reads the flags.
-- **Scope before data.** Every charge and account query in Go goes through one scope filter (admin: all; otherwise `account_user` plus `agent_user` → `agent_account`). Permission checks run first and do not depend on the resource, so `403` reveals nothing; anything outside the scope is `404`, identical to a missing row.
-- **Authentication in Go, schema in PHP.** Go verifies the Laravel bcrypt hash and issues an opaque token; only its SHA-256 hash is stored in `api_tokens`, a table PHP migrates. The browser gets an `HttpOnly`, `SameSite=Strict` cookie (no token in JavaScript), and cross-site writes are refused using `Sec-Fetch-Site`/`Origin`. I chose this over JWTs because sessions must be revocable from Nova immediately, and over Passport because the portal may only talk to Go.
-- **Charge rules in two languages, one contract.** The rules live in the PHP `Charge` model (used by Nova actions) and in Go's `charge` package. `contracts/charge-operations.json` holds 32 cases that both test suites run, and MySQL CHECK constraints guard the amount invariants whatever writes the row. Changes lock the charge row (`SELECT … FOR UPDATE`), and a test fires ten concurrent refunds to prove the total never exceeds the captured amount.
-- **Idempotency.** Payment writes accept an `Idempotency-Key`. The stored response is inserted in the same transaction as the change, so a retry either replays it or runs for the first time; concurrent duplicates collapse to one.
-- **Statuses.** A partial refund keeps the charge `captured` with `amount_refunded > 0`; it becomes `refunded` (and `refunded = true`) once nothing is left. Void only applies to `authorized` charges; disputed charges cannot be refunded; suspended or disabled merchants cannot take new charges but can still settle existing ones. I added `capture` (with a `charges.capture` permission) so that authorize-only charges are useful.
-- **Apiato kept lean.** I removed the starter's Passport, API endpoints and documentation generator, since nothing used them and they would have been a second, untested way in.
+- **Shared schema and permissions.** PHP owns migrations and seeders; both services use the same MySQL and Spatie tables (`web` guard, `user` morph alias). Nova's user flags sync to roles. Go reloads permissions on every request, so changes apply on the next API call.
+- **Tenant boundaries.** Admins see all accounts; others see direct `account_user` or `agent_user` → `agent_account` links, without inheriting sub-agent accounts. Missing permission returns `403` before lookup; out-of-scope records return `404`.
+- **Revocable sessions.** Go verifies Laravel bcrypt passwords and issues opaque tokens; only SHA-256 hashes are stored. The portal uses an `HttpOnly`, `SameSite=Strict` cookie and `Origin`/`Sec-Fetch-Site` checks for writes, allowing revocation without a PHP API.
+- **Charge correctness.** PHP and Go implement capture, refund and void; 32 shared contract cases and MySQL amount constraints check the behavior. Writes lock rows and store idempotency results transactionally; ten concurrent refunds are tested. Partial refunds stay `captured`; disputed charges cannot be refunded.
+- **Delivery.** With authorized Nova credentials outside Git ([reviewer setup](reviewer-setup.md)), `docker compose up` builds, migrates and seeds the stack. CI checks formatting and frontend tests; Nova-dependent jobs run PHPStan, integration tests and Playwright when credentials are available. Photos are stored in MySQL for PHP/Go access.
 
 ## Assumptions
 
-- A parent agent does not see the merchants of its sub-agents; only directly served merchants count.
-- An admin can also use the merchant portal and sees every merchant there.
-- All supported currencies have two decimals (USD, EUR, GBP, CAD).
-- Nova is reviewed with the reviewer's own license; it is not redistributed.
+- Admins may use the merchant portal. Supported currencies (USD, EUR, GBP, CAD) have two decimal places.
 
 ## With more time
 
-- Refunds as their own ledger rows (one per refund) instead of a running total, for reporting and audit.
-- Keyset pagination for very large charge lists, and a shared store for the login rate limiter if the API runs on more than one instance.
-- Browser end-to-end tests in CI (I verified the flows with a headless browser locally) and PHPStan in CI.
-- A charge timeline in the portal, built on Nova's action log and API events.
+- Record each refund in a ledger for audit and reporting; add keyset pagination for large charge lists, a shared login rate limiter for multiple API instances, and a charge timeline.
 
 ## AI use
 
-I used AI coding assistants (OpenAI Codex, then Anthropic's Claude Code) for scaffolding, implementation, tests and documentation, with me directing the design, reviewing every change, and running and checking the results. I can explain and defend each part of the code.
+I used AI coding assistants (OpenAI Codex, then Anthropic's Claude Code) for scaffolding, implementation, tests and documentation. I directed the design, reviewed the changes and verified the results. I can explain the submitted code and its trade-offs.
 
-Time spent: _fill in_.
+## Time spent
+
+Approximately 25 hours of focused work across six days:
+
+- Planning and architecture: 2 hours.
+- Project, Docker and database setup: 3 hours.
+- Implementation and integration of the PHP, Go and React components: 11 hours.
+- Automated tests, end-to-end checks and fixes: 5 hours.
+- Optimizations and improvements: 4 hours.
