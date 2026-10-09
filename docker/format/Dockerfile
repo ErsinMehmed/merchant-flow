@@ -1,4 +1,4 @@
-FROM node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1 AS prettier
+FROM node:25-alpine@sha256:bdf2cca6fe3dabd014ea60163eca3f0f7015fbd5c7ee1b0e9ccb4ced6eb02ef4 AS prettier
 WORKDIR /opt/format/node
 COPY tools/format/package.json tools/format/package-lock.json ./
 RUN npm ci --ignore-scripts --no-audit --no-fund
