@@ -274,7 +274,7 @@ services:
   # Debian rather than Alpine: the race detector needs cgo and a C toolchain.
   go-test:
     profiles: [test]
-    image: golang:1.26-trixie@sha256:eae2aaa6add2936cbf350dd0d2628b363461542f0c4b3c0b558957e0f2997379
+    image: golang:1.27-trixie@sha256:47667934874913a449b96faa7ef4777fa285d9ec29126ee80ed61c45b7cccf0e
     working_dir: /src/go-api
     volumes:
       - ./go-api:/src/go-api:ro
@@ -319,7 +319,7 @@ services:
 
   audit-go:
     profiles: [audit]
-    image: golang:1.26-trixie@sha256:eae2aaa6add2936cbf350dd0d2628b363461542f0c4b3c0b558957e0f2997379
+    image: golang:1.27-trixie@sha256:47667934874913a449b96faa7ef4777fa285d9ec29126ee80ed61c45b7cccf0e
     working_dir: /src/go-api
     volumes:
       - ./go-api:/src/go-api:ro
