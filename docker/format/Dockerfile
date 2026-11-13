@@ -6,7 +6,7 @@ RUN npm ci --ignore-scripts --no-audit --no-fund
 FROM golang:1.26-alpine@sha256:8ac98ca534ac3f51e1f420a1dd2c15e74c75cfa0f23f3ad27eb5d7236c349a0c AS go
 FROM composer:2@sha256:af98f42dfff7c68ba8d53c2164fd9fde1087b7d449514baa38c418b1f6bc4bac AS composer
 
-FROM php:8.4-fpm-alpine@sha256:78cd8de9970a9cd6ff4d98860a94eb5bf37dd2d5776b4785562dbfad01c29d5a
+FROM php:8.5-fpm-alpine@sha256:951fb5b1780219b81d5daffa4cebef8e0077c537f3893d9790a5dfcd66ca334d
 RUN apk add --no-cache libstdc++
 COPY --from=composer /usr/bin/composer /usr/local/bin/composer
 COPY --from=prettier /usr/local/bin/node /usr/local/bin/node
